@@ -28,16 +28,16 @@ type AuthInfo struct {
 	Password string `json:"password,omitempty"`
 }
 
-func (r *AuthInfo) SetBasicAuth(req *http.Request) {
-	if len(r.Password) > 0 {
-		req.SetBasicAuth(r.Username, r.Password)
-	}
+func (r *AuthInfo) IsBasicAuth() bool {
+	return len(r.Password) > 0
 }
 
-func (r *AuthInfo) SetTokenAuth(req *http.Request) {
-	if len(r.Token) > 0 {
-		req.Header.Set("Authorization", "Bearer: "+r.Token)
-	}
+func (r *AuthInfo) IsTokenAuth() bool {
+	return len(r.Token) > 0
+}
+
+func (r *AuthInfo) IsCertAuth() bool {
+	return len(r.ClientCertificateData) > 0 && len(r.ClientKeyData) > 0
 }
 
 func (r *AuthInfo) SetTLSClientConfig(client *http.Client) error {

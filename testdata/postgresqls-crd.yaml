@@ -1,0 +1,212 @@
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.13.0
+  creationTimestamp: "2023-11-03T09:06:39Z"
+  generation: 1
+  name: postgresqls.composition.krateo.io
+  resourceVersion: "2195"
+  uid: e9fbe637-99a0-4ff0-bfae-4eab8e381d9b
+spec:
+  conversion:
+    strategy: None
+  group: composition.krateo.io
+  names:
+    categories:
+    - krateo
+    - composition
+    kind: Postgresql
+    listKind: PostgresqlList
+    plural: postgresqls
+    singular: postgresql
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .metadata.creationTimestamp
+      name: AGE
+      type: date
+    - jsonPath: .status.conditions[?(@.type=='Ready')].status
+      name: READY
+      type: string
+    name: v12-8-3
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          spec:
+            description: PostgresqlSpec defines the desired state of Postgresql
+            properties:
+              architecture:
+                description: 'Architecture: Allowed values: `standalone` or `replication`'
+                type: string
+              auth:
+                properties:
+                  database:
+                    description: 'Database: Name of the custom database to be created
+                      during the 1st initialization of PostgreSQL'
+                    type: string
+                  enablePostgresUser:
+                    description: 'EnablePostgresUser: Assign a password to the "postgres"
+                      admin user. Otherwise, remote access will be blocked for this
+                      user'
+                    type: boolean
+                  password:
+                    description: 'Password: Defaults to a random 10-character alphanumeric
+                      string if not set'
+                    type: string
+                  postgresPassword:
+                    description: 'PostgresPassword: Defaults to a random 10-character
+                      alphanumeric string if not set'
+                    type: string
+                  replicationPassword:
+                    description: 'ReplicationPassword: Defaults to a random 10-character
+                      alphanumeric string if not set'
+                    type: string
+                  replicationUsername:
+                    description: 'ReplicationUsername: Name of user used to manage
+                      replication.'
+                    type: string
+                  username:
+                    description: 'Username: Name of the custom user to be created
+                      during the 1st initialization of PostgreSQL. This user only
+                      has permissions on the PostgreSQL custom database'
+                    type: string
+                type: object
+              deletionPolicy:
+                default: Delete
+                description: DeletionPolicy specifies what will happen to the underlying
+                  external when this managed resource is deleted - either "Delete"
+                  or "Orphan" the external resource.
+                enum:
+                - Orphan
+                - Delete
+                type: string
+              metrics:
+                properties:
+                  enabled:
+                    type: boolean
+                type: object
+              persistence:
+                properties:
+                  size:
+                    type: string
+                type: object
+              replication:
+                properties:
+                  enabled:
+                    type: boolean
+                  readReplicas:
+                    type: integer
+                type: object
+              resources:
+                description: 'Resources: Configure resource requests'
+                properties:
+                  requests:
+                    properties:
+                      cpu:
+                        type: string
+                      memory:
+                        type: string
+                    type: object
+                type: object
+              volumePermissions:
+                properties:
+                  enabled:
+                    description: 'Enabled: Change the owner of the persist volume
+                      mountpoint to RunAsUser:fsGroup'
+                    type: boolean
+                type: object
+            type: object
+          status:
+            description: PostgresqlStatus defines the observed state of Postgresql
+            properties:
+              conditions:
+                description: Conditions of the resource.
+                items:
+                  description: A Condition that may apply to a resource.
+                  properties:
+                    lastTransitionTime:
+                      description: LastTransitionTime is the last time this condition
+                        transitioned from one status to another.
+                      format: date-time
+                      type: string
+                    message:
+                      description: A Message containing details about this condition's
+                        last transition from one status to another, if any.
+                      type: string
+                    reason:
+                      description: A Reason for this condition's last transition from
+                        one status to another.
+                      type: string
+                    status:
+                      description: Status of this condition; is it currently True,
+                        False, or Unknown?
+                      type: string
+                    type:
+                      description: Type of this condition. At most one of each condition
+                        type may apply to a resource at any point in time.
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+              failedObjectRef:
+                properties:
+                  apiVersion:
+                    description: 'APIVersion: API version of the object.'
+                    type: string
+                  kind:
+                    description: 'Kind: Kind of the object.'
+                    type: string
+                  name:
+                    description: 'Name: Name of the object.'
+                    type: string
+                  namespace:
+                    description: 'Namespace: Namespace of the object.'
+                    type: string
+                type: object
+              helmChartUrl:
+                type: string
+              helmChartVersion:
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    categories:
+    - krateo
+    - composition
+    kind: Postgresql
+    listKind: PostgresqlList
+    plural: postgresqls
+    singular: postgresql
+  conditions:
+  - lastTransitionTime: "2023-11-03T09:06:39Z"
+    message: no conflicts found
+    reason: NoConflicts
+    status: "True"
+    type: NamesAccepted
+  - lastTransitionTime: "2023-11-03T09:06:39Z"
+    message: the initial names have been accepted
+    reason: InitialNamesAccepted
+    status: "True"
+    type: Established
+  storedVersions:
+  - v12-8-3

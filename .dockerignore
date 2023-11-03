@@ -1,0 +1,15 @@
+.env
+AUTHORS.md
+CONTRIBUTING.md
+LICENSE
+NOTICE
+README.md
+manifests/
+samples/
+testdata/
+.github/
+hacks/
+chart/
+Makefile
+ca.crt
+ca.key

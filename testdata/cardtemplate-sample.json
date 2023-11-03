@@ -1,0 +1,45 @@
+{
+  "apiVersion": "widget.ui.krateo.io/v1alpha1",
+  "kind": "CardTemplate",
+  "metadata": {
+    "name": "cardTemplate1"
+  },
+  "spec": {
+    "app": {
+      "icon": "ApartmentOutlined",
+      "color": "GREEN",
+      "title": "{{ jq .crd.metadata.annotation[title] }}",
+      "date": "{{ jq .crd.metadata.creationTimestamp}}",
+      "content": "{{ jq .crd.metadata.annotation[content] }}",
+      "tags": "{{ jq .crd.spec.categories }}",
+      "actions": [
+        {
+          "enabled": true,
+          "url": "/apis/apiextensions.k8s.io/v1/customresourcedefinitions/postgresqls.composition.krateo.io",
+          "endpointRef": {
+            "name": "krateogateway-endpoint",
+            "namespace": "krateo-system"
+          },
+          "verb": "DELETE",
+          "headers": [
+            "Content-Type: application/json"
+          ]
+        }
+      ]
+    },
+    "api": [
+      {
+        "name": "crd",
+        "url": "/apis/apiextensions.k8s.io/v1/customresourcedefinitions/postgresqls.composition.krateo.io",
+        "endpointRef": {
+          "name": "krateogateway-endpoint",
+          "namespace": "krateo-system"
+        },
+        "verb": "GET",
+        "headers": [
+          "Content-Type: application/json"
+        ]
+      }
+    ]
+  }
+}

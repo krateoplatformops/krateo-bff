@@ -66,13 +66,11 @@ spec:
                       type: string
                     path:
                       type: string
-                    server:
+                    payload:
                       type: string
                     verb:
                       default: GET
                       type: string
-                  required:
-                  - server
                   type: object
                 type: array
               app:
@@ -106,13 +104,11 @@ spec:
                           type: string
                         path:
                           type: string
-                        server:
+                        payload:
                           type: string
                         verb:
                           default: GET
                           type: string
-                      required:
-                      - server
                       type: object
                     type: array
                   color:

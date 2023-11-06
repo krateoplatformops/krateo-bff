@@ -3,6 +3,7 @@ module github.com/krateoplatformops/krateo-bff
 go 1.21.3
 
 require (
+	github.com/davecgh/go-spew v1.1.1
 	k8s.io/api v0.28.3
 	k8s.io/apimachinery v0.28.3
 	k8s.io/client-go v0.28.3
@@ -12,7 +13,6 @@ require (
 )
 
 require (
-	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/fatih/color v1.15.0 // indirect
 	github.com/go-logr/logr v1.2.4 // indirect
 	github.com/gobuffalo/flect v1.0.2 // indirect

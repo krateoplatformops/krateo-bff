@@ -1,14 +1,10 @@
 package core
 
-import (
-	"crypto/tls"
-	"crypto/x509"
-	"net/http"
-)
-
-// AuthInfo contains information that describes identity information.
+// Endpoint contains information that describes identity information.
 // +k8s:deepcopy-gen=true
-type AuthInfo struct {
+type Endpoint struct {
+	Server string `json:"server"`
+
 	// CertificateAuthorityData contains PEM-encoded certificate authority certificates.
 	CertificateAuthorityData []byte `json:"certificate-authority-data,omitempty"`
 
@@ -26,39 +22,53 @@ type AuthInfo struct {
 
 	// Password is the password for basic authentication to the server.
 	Password string `json:"password,omitempty"`
+
+	Debug bool `json:"debug,omitempty"`
 }
 
-func (r *AuthInfo) IsBasicAuth() bool {
-	return len(r.Password) > 0
+// HasCA returns whether the configuration has a certificate authority or not.
+func (ep *Endpoint) HasCA() bool {
+	return len(ep.CertificateAuthorityData) > 0
 }
 
-func (r *AuthInfo) IsTokenAuth() bool {
-	return len(r.Token) > 0
+// HasBasicAuth returns whether the configuration has basic authentication or not.
+func (ep *Endpoint) HasBasicAuth() bool {
+	return len(ep.Password) != 0
 }
 
-func (r *AuthInfo) IsCertAuth() bool {
-	return len(r.ClientCertificateData) > 0 && len(r.ClientKeyData) > 0
+// HasTokenAuth returns whether the configuration has token authentication or not.
+func (ep *Endpoint) HasTokenAuth() bool {
+	return len(ep.Token) != 0
 }
 
-func (r *AuthInfo) SetTLSClientConfig(client *http.Client) error {
-	if len(r.ClientCertificateData) == 0 || len(r.ClientKeyData) == 0 {
-		return nil
-	}
+// HasCertAuth returns whether the configuration has certificate authentication or not.
+func (ep *Endpoint) HasCertAuth() bool {
+	return len(ep.ClientCertificateData) != 0 && len(ep.ClientKeyData) != 0
+}
 
-	cert, err := tls.X509KeyPair(r.ClientCertificateData, r.ClientKeyData)
-	if err != nil {
-		return err
-	}
-	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(r.CertificateAuthorityData)
-	tlsConfig := &tls.Config{
-		RootCAs:      caCertPool,
-		Certificates: []tls.Certificate{cert},
-	}
+// API contains external api call info.
+// +k8s:deepcopy-gen=true
+type API struct {
+	// +optional
+	Name *string `json:"name,omitempty"`
 
-	client.Transport = &http.Transport{
-		TLSClientConfig: tlsConfig,
-	}
+	// +optional
+	Path *string `json:"path,omitempty"`
 
-	return nil
+	// +optional
+	// +kubebuilder:default=GET
+	Verb *string `json:"verb,omitempty"`
+
+	// +optional
+	Headers []string `json:"headers,omitempty"`
+
+	// +optional
+	Payload *string `json:"payload,omitempty"`
+
+	// +optional
+	EndpointRef *Reference `json:"endpointRef,omitempty"`
+
+	// +optional
+	// +kubebuilder:default=true
+	Enabled *bool `json:"enabled,omitempty"`
 }

@@ -1,17 +1,26 @@
 package resolvers
 
 import (
+	"fmt"
+	"strconv"
+
 	"github.com/krateoplatformops/krateo-bff/apis/core"
 	"k8s.io/client-go/rest"
 )
 
-func GetAuthInfo(rc *rest.Config, ref *core.Reference) (*core.AuthInfo, error) {
+func GetEndpoint(rc *rest.Config, ref *core.Reference) (*core.Endpoint, error) {
 	values, err := GetSecretData(rc, ref)
 	if err != nil {
 		return nil, err
 	}
 
-	res := &core.AuthInfo{}
+	res := &core.Endpoint{}
+	if v, ok := values["server"]; ok {
+		res.Server = v
+	} else {
+		return res, fmt.Errorf("missed required attribute for endpoint: server")
+	}
+
 	if v, ok := values["token"]; ok {
 		res.Token = v
 	}
@@ -34,6 +43,10 @@ func GetAuthInfo(rc *rest.Config, ref *core.Reference) (*core.AuthInfo, error) {
 
 	if v, ok := values["client-certificate-data"]; ok {
 		res.ClientCertificateData = []byte(v)
+	}
+
+	if v, ok := values["debug"]; ok {
+		res.Debug, _ = strconv.ParseBool(v)
 	}
 
 	return res, nil

@@ -24,10 +24,9 @@ spec:
   app:
     icon: ApartmentOutlined
     color: GREEN
-    title: "{{ jq .crd.metadata.annotation[title] }}"
-    date: "{{ jq .crd.metadata.creationTimestamp}}"
-    content: "{{ jq .crd.metadata.annotation[content] }}"
-    tags: "{{ jq .crd.spec.categories }}"
+    title: {{ jq .httpbin.json.firstName }} {{ jq .httpbin.json.lastName }}
+    content: "{{ jq .httpbin.json.location }}"
+    tags: {{ jq .httpbin.json.hobbies | join(",")" }}
     actions:
     - enabled: true
       path: "/apis/apiextensions.k8s.io/v1/customresourcedefinitions/postgresqls.composition.krateo.io"
@@ -45,4 +44,16 @@ spec:
     headers:
     - 'Accept: application/json'
     payload: |
-      {"name": "John", "surname": "Doe"}
+      {
+        "firstName": "Charles",
+        "lastName": "Doe",
+        "age": 41,
+        "location": {
+          "city": "San Fracisco",
+          "postalCode": "94103"
+        },
+        "hobbies": [
+          "chess",
+          "netflix"
+        ]
+      }

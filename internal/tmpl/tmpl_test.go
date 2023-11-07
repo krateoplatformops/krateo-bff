@@ -7,7 +7,7 @@ import (
 )
 
 func TestJQTemplate(t *testing.T) {
-	const query = `{{ jq ".location.city" }}`
+	const query = `{{ jq .hobbies | join(",") }}`
 
 	ds, err := dataSource()
 	if err != nil {
@@ -33,7 +33,7 @@ func TestJQ(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	str, err := jq(".location.city", ds)
+	str, err := jq(`.hobbies | join(",")`, ds)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,12 +45,13 @@ func TestFixQuery(t *testing.T) {
 		input string
 		want  string
 	}{
-		{`{{ jq ".age" }}`, `{{ jq ".age" . }}`},
-		{`jq ".age" }}`, `jq ".age" }}`},
-		{`jq ".age"`, `jq ".age"`},
-		{`{{ jq ".location.city" . }}`, `{{ jq ".location.city" . }}`},
+		{`{{ jq .age }}`, `{{ jq ".age" . }}`},
+		{`jq .age }}`, `jq .age }}`},
+		{`jq .age`, `jq .age`},
+		{`{{ jq .location.city }}`, `{{ jq ".location.city" . }}`},
 		{`hello world`, `hello world`},
 		{`{{ print ".age" }}`, `{{ print ".age" }}`},
+		{`{{ jq .hobbies | join(",") }}`, `{{ jq ".hobbies | join(\",\")" . }}`},
 	}
 
 	tpl, err := New()

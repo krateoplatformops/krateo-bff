@@ -49,8 +49,7 @@ func (ep *Endpoint) HasCertAuth() bool {
 // API contains external api call info.
 // +k8s:deepcopy-gen=true
 type API struct {
-	// +optional
-	Name *string `json:"name,omitempty"`
+	Name string `json:"name"`
 
 	// +optional
 	Path *string `json:"path,omitempty"`

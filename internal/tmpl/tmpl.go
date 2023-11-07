@@ -15,7 +15,7 @@ type JQTemplate interface {
 var _ JQTemplate = (*jqTemplate)(nil)
 
 func New() (JQTemplate, error) {
-	re, err := regexp.Compile(`^jq\s+"([^"]*)"`)
+	re, err := regexp.Compile(`^\{\{\s+jq(.*)\}\}$`)
 	if err != nil {
 		return nil, err
 	}
@@ -43,25 +43,14 @@ func (t *jqTemplate) Execute(query string, data any) (string, error) {
 }
 
 func (t *jqTemplate) fixQuery(q string) string {
-	if !strings.HasPrefix(q, "{{") {
+	if !t.re.MatchString(q) {
 		return q
 	}
 
-	if !strings.HasSuffix(q, "}}") {
+	res := t.re.FindAllStringSubmatch(q, -1)
+	if len(res) == 0 || len(res[0]) == 0 {
 		return q
 	}
 
-	s := strings.TrimPrefix(q, "{{")
-	s = strings.TrimSuffix(s, "}}")
-	s = strings.TrimSpace(s)
-
-	if !t.re.MatchString(s) {
-		return q
-	}
-
-	if strings.HasSuffix(s, ".") {
-		return q
-	}
-
-	return fmt.Sprintf("{{ %s . }}", s)
+	return fmt.Sprintf("{{ jq %q . }}", strings.TrimSpace(res[0][1]))
 }

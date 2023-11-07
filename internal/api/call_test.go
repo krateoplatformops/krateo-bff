@@ -19,7 +19,7 @@ import (
 
 func TestCall(t *testing.T) {
 	api := core.API{
-		Name: ptr.To("test"),
+		Name: "test",
 		Path: ptr.To("/anything"),
 		Verb: ptr.To("POST"),
 		Headers: []string{

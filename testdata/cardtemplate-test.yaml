@@ -24,11 +24,12 @@ spec:
   app:
     icon: ApartmentOutlined
     color: GREEN
-    title: {{ jq .httpbin.json.firstName }} {{ jq .httpbin.json.lastName }}
-    content: "{{ jq .httpbin.json.location }}"
-    tags: {{ jq .httpbin.json.hobbies | join(",")" }}
+    title: "{{ jq (.httpbin.json.firstName  + \" \" + .httpbin.json.lastName) }}"
+    content: "{{ jq .httpbin.json.location.city }}"
+    tags: "{{ jq .httpbin.json.hobbies | join(\",\") }}"
     actions:
-    - enabled: true
+    - name: crd
+      enabled: true
       path: "/apis/apiextensions.k8s.io/v1/customresourcedefinitions/postgresqls.composition.krateo.io"
       endpointRef:
         name: httpbin-endpoint

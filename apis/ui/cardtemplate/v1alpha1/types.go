@@ -11,16 +11,16 @@ type CardInfo struct {
 	Content string `json:"content"`
 
 	// +optional
-	Icon *string `json:"icon,omitempty"`
+	Icon string `json:"icon,omitempty"`
 
 	// +optional
-	Color *string `json:"color,omitempty"`
+	Color string `json:"color,omitempty"`
 
 	// +optional
-	Date *string `json:"date,omitempty"`
+	Date string `json:"date,omitempty"`
 
 	// +optional
-	Tags *string `json:"tags,omitempty"`
+	Tags string `json:"tags,omitempty"`
 
 	// +optional
 	Actions []*core.API `json:"actions,omitempty"`

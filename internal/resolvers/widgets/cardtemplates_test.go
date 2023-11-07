@@ -2,11 +2,11 @@ package widgets
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/davecgh/go-spew/spew"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
@@ -15,6 +15,7 @@ import (
 	cardtemplatev1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplate/v1alpha1"
 	"github.com/krateoplatformops/krateo-bff/internal/api"
 	"github.com/krateoplatformops/krateo-bff/internal/resolvers"
+	"github.com/krateoplatformops/krateo-bff/internal/tmpl"
 )
 
 func TestCardTemplateGet(t *testing.T) {
@@ -39,7 +40,7 @@ func TestCardTemplateGet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ds := map[string]map[string]any{}
+	ds := map[string]any{}
 	for _, x := range res.Spec.APIList {
 		ep, err := resolvers.GetEndpoint(cfg, x.EndpointRef)
 		if err != nil {
@@ -62,7 +63,42 @@ func TestCardTemplateGet(t *testing.T) {
 		ds[x.Name] = rt
 	}
 
-	spew.Dump(ds)
+	tpl, err := tmpl.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res.Spec.App.Title, err = tpl.Execute(res.Spec.App.Title, ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res.Spec.App.Content, err = tpl.Execute(res.Spec.App.Content, ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res.Spec.App.Icon, err = tpl.Execute(res.Spec.App.Icon, ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res.Spec.App.Color, err = tpl.Execute(res.Spec.App.Color, ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res.Spec.App.Date, err = tpl.Execute(res.Spec.App.Date, ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res.Spec.App.Tags, err = tpl.Execute(res.Spec.App.Tags, ds)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fmt.Printf("%+v\n", res.Spec.App)
 }
 
 func newRestConfig() (*rest.Config, error) {

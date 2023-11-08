@@ -24,9 +24,9 @@ spec:
   app:
     icon: ApartmentOutlined
     color: GREEN
-    title: "{{ jq (.httpbin.json.firstName  + \" \" + .httpbin.json.lastName) }}"
-    content: "{{ jq .httpbin.json.location.city }}"
-    tags: "{{ jq .httpbin.json.hobbies | join(\",\") }}"
+    title: "{{ (.httpbin.json.firstName  + \" \" + .httpbin.json.lastName) }}"
+    content: "{{ .httpbin.json.location.city }}"
+    tags: "{{ .httpbin.json.hobbies | join(\",\") }}"
     actions:
     - name: crd
       enabled: true

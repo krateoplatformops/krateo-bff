@@ -7,7 +7,7 @@ import (
 )
 
 func TestJQTemplate(t *testing.T) {
-	const query = `{{ jq .hobbies | join(",") }}`
+	const query = `{{ .hobbies | join(",") }}`
 
 	ds, err := dataSource()
 	if err != nil {
@@ -45,13 +45,11 @@ func TestFixQuery(t *testing.T) {
 		input string
 		want  string
 	}{
-		{`{{ jq .age }}`, `{{ jq ".age" . }}`},
-		{`jq .age }}`, `jq .age }}`},
-		{`jq .age`, `jq .age`},
-		{`{{ jq .location.city }}`, `{{ jq ".location.city" . }}`},
+		{`{{ .age }}`, `.age`},
+		{` .age }}`, ` .age }}`},
+		{`{{ .location.city }}`, `.location.city`},
 		{`hello world`, `hello world`},
-		{`{{ print ".age" }}`, `{{ print ".age" }}`},
-		{`{{ jq .hobbies | join(",") }}`, `{{ jq ".hobbies | join(\",\")" . }}`},
+		{`{{ .hobbies | join(",") }}`, `.hobbies | join(",")`},
 	}
 
 	tpl, err := New()

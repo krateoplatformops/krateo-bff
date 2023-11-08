@@ -1,11 +1,10 @@
 package tmpl
 
 import (
-	"bytes"
-	"fmt"
 	"regexp"
 	"strings"
-	"text/template"
+
+	"github.com/itchyny/gojq"
 )
 
 type JQTemplate interface {
@@ -15,31 +14,41 @@ type JQTemplate interface {
 var _ JQTemplate = (*jqTemplate)(nil)
 
 func New() (JQTemplate, error) {
-	re, err := regexp.Compile(`^\{\{\s+jq(.*)\}\}$`)
+	re, err := regexp.Compile(`^\{\{\s+(.*)\}\}$`)
 	if err != nil {
 		return nil, err
 	}
 
-	return &jqTemplate{
-		re:  re,
-		tpl: template.New("tmp").Funcs(FuncMap()),
-	}, nil
+	return &jqTemplate{re: re}, nil
 }
 
 type jqTemplate struct {
-	re  *regexp.Regexp
-	tpl *template.Template
+	re *regexp.Regexp
 }
 
-func (t *jqTemplate) Execute(query string, data any) (string, error) {
-	tpl, err := t.tpl.Parse(t.fixQuery(query))
+func (t *jqTemplate) Execute(q string, data any) (string, error) {
+	enc := newEncoder(false, 0)
+
+	query, err := gojq.Parse(t.fixQuery(q))
 	if err != nil {
 		return "", err
 	}
 
-	buf := bytes.Buffer{}
-	err = tpl.Execute(&buf, data)
-	return buf.String(), err
+	iter := query.Run(data) // or query.RunWithContext
+	for {
+		v, ok := iter.Next()
+		if !ok {
+			break
+		}
+		if err, ok := v.(error); ok {
+			return "", err
+		}
+		if err := enc.encode(v); err != nil {
+			return "", err
+		}
+	}
+
+	return enc.w.String(), nil
 }
 
 func (t *jqTemplate) fixQuery(q string) string {
@@ -52,5 +61,5 @@ func (t *jqTemplate) fixQuery(q string) string {
 		return q
 	}
 
-	return fmt.Sprintf("{{ jq %q . }}", strings.TrimSpace(res[0][1]))
+	return strings.TrimSpace(res[0][1])
 }

@@ -2,14 +2,14 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: test-system
+  name: dev-system
 ---
 apiVersion: v1
 kind: Secret
 type: Opaque
 metadata:
   name: httpbin-endpoint
-  namespace: test-system
+  namespace: dev-system
 stringData:
   server: http://httpbin.org
   username: tik
@@ -18,15 +18,15 @@ stringData:
 apiVersion: widgets.ui.krateo.io/v1alpha1
 kind: CardTemplate
 metadata:
-  name: card-test
-  namespace: test-system
+  name: card-dev
+  namespace: dev-system
 spec:
   app:
     icon: ApartmentOutlined
     color: GREEN
-    title: "{{ (.httpbin.json.firstName  + \" \" + .httpbin.json.lastName) }}"
-    content: "{{ .httpbin.json.location.city }}"
-    tags: "{{ .httpbin.json.hobbies | join(\",\") }}"
+    title: ${ (.httpbin.json.firstName  + " " + .httpbin.json.lastName) }
+    content: ${ .httpbin.json.location.city }
+    tags: ${ .httpbin.json.hobbies | join(",") }
     actions:
     - name: crd
       enabled: true
@@ -40,7 +40,7 @@ spec:
     path: "/anything"
     endpointRef:
       name: httpbin-endpoint
-      namespace: test-system
+      namespace: dev-system
     verb: GET
     headers:
     - 'Accept: application/json'

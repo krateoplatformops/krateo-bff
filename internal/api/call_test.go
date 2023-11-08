@@ -1,7 +1,7 @@
 //go:build integration
 // +build integration
 
-package api
+package api_test
 
 import (
 	"context"
@@ -11,6 +11,7 @@ import (
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/krateoplatformops/krateo-bff/apis/core"
+	"github.com/krateoplatformops/krateo-bff/internal/api"
 	"github.com/krateoplatformops/krateo-bff/internal/resolvers"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -18,7 +19,7 @@ import (
 )
 
 func TestCall(t *testing.T) {
-	api := core.API{
+	apiInfo := core.API{
 		Name: "test",
 		Path: ptr.To("/anything"),
 		Verb: ptr.To("POST"),
@@ -39,18 +40,18 @@ func TestCall(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	authn, err := resolvers.GetEndpoint(rc, api.EndpointRef)
+	authn, err := resolvers.Endpoint(context.TODO(), rc, apiInfo.EndpointRef)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	httpClient, err := HTTPClientForEndpoint(authn)
+	httpClient, err := api.HTTPClientForEndpoint(authn)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	resp, err := Call(context.TODO(), httpClient, CallOptions{
-		API:      &api,
+	resp, err := api.Call(context.TODO(), httpClient, api.CallOptions{
+		API:      &apiInfo,
 		Endpoint: authn,
 	})
 	if err != nil {

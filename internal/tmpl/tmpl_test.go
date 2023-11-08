@@ -3,28 +3,51 @@ package tmpl
 import (
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"testing"
 )
 
+func TestRegexPatternBuild(t *testing.T) {
+	leftDelim, rightDelim := "${", "}"
+	pattern := fmt.Sprintf("^%s\\s+(.*)%s",
+		regexp.QuoteMeta(leftDelim),
+		regexp.QuoteMeta(rightDelim))
+
+	fmt.Println(pattern)
+}
+
 func TestJQTemplate(t *testing.T) {
-	const query = `{{ .hobbies | join(",") }}`
+	test := []struct {
+		input string
+		want  string
+	}{
+		{`${ .age }`, "41"},
+		{` .age }}`, ` .age }}`},
+		{`${ .location.city }`, "San Fracisco"},
+		{"hello world", "hello world"},
+		{`${ .hobbies | join(",") }`, "chess,netflix"},
+	}
 
 	ds, err := dataSource()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	tpl, err := New()
+	tpl, err := New("${", "}")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	res, err := tpl.Execute(query, ds)
-	if err != nil {
-		t.Fatal(err)
-	}
+	for _, tc := range test {
+		got, err := tpl.Execute(tc.input, ds)
+		if err != nil {
+			t.Fatal(err)
+		}
 
-	fmt.Println(res)
+		if got != tc.want {
+			t.Fatalf("got: %s, want: %s\n", got, tc.want)
+		}
+	}
 }
 
 func TestJQ(t *testing.T) {
@@ -40,27 +63,31 @@ func TestJQ(t *testing.T) {
 	fmt.Println(str)
 }
 
-func TestFixQuery(t *testing.T) {
+func TestAcceptQuery(t *testing.T) {
 	test := []struct {
 		input string
 		want  string
+		ok    bool
 	}{
-		{`{{ .age }}`, `.age`},
-		{` .age }}`, ` .age }}`},
-		{`{{ .location.city }}`, `.location.city`},
-		{`hello world`, `hello world`},
-		{`{{ .hobbies | join(",") }}`, `.hobbies | join(",")`},
+		{`${ .age }`, `.age`, true},
+		{` .age }}`, ` .age }}`, false},
+		{`${ .location.city }`, `.location.city`, true},
+		{`hello world`, `hello world`, false},
+		{`${ .hobbies | join(",") }`, `.hobbies | join(",")`, true},
 	}
 
-	tpl, err := New()
+	tpl, err := New("${", "}")
 	if err != nil {
 		t.Fatal(err)
 	}
 	r := tpl.(*jqTemplate)
 
 	for _, tc := range test {
-		got := r.fixQuery(tc.input)
+		got, ok := r.acceptQuery(tc.input)
 		if got != tc.want {
+			t.Fatalf("got: %s, want: %s\n", got, tc.want)
+		}
+		if ok != tc.ok {
 			t.Fatalf("got: %s, want: %s\n", got, tc.want)
 		}
 	}

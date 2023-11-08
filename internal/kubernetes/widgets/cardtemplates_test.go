@@ -1,4 +1,7 @@
-package widgets
+//go:build integration
+// +build integration
+
+package widgets_test
 
 import (
 	"context"
@@ -8,28 +11,22 @@ import (
 	"testing"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	cardtemplatev1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplate/v1alpha1"
 	"github.com/krateoplatformops/krateo-bff/internal/api"
+	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/widgets"
 	"github.com/krateoplatformops/krateo-bff/internal/resolvers"
 	"github.com/krateoplatformops/krateo-bff/internal/tmpl"
 )
 
 func TestCardTemplateGet(t *testing.T) {
-	all := scheme.Scheme.KnownTypes(cardtemplatev1alpha1.SchemeGroupVersion)
-	if len(all) == 0 {
-		cardtemplatev1alpha1.SchemeBuilder.AddToScheme(scheme.Scheme)
-	}
-
 	cfg, err := newRestConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	uic, err := NewForConfig(cfg)
+	uic, err := widgets.NewForConfig(cfg)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +39,7 @@ func TestCardTemplateGet(t *testing.T) {
 
 	ds := map[string]any{}
 	for _, x := range res.Spec.APIList {
-		ep, err := resolvers.GetEndpoint(cfg, x.EndpointRef)
+		ep, err := resolvers.Endpoint(context.TODO(), cfg, x.EndpointRef)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -63,7 +60,7 @@ func TestCardTemplateGet(t *testing.T) {
 		ds[x.Name] = rt
 	}
 
-	tpl, err := tmpl.New()
+	tpl, err := tmpl.New("${", "}")
 	if err != nil {
 		t.Fatal(err)
 	}

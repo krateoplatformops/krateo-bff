@@ -27,6 +27,8 @@ func (c *WidgetsClient) CardTemplates(ns string) CardTemplateInterface {
 }
 
 func NewForConfig(c *rest.Config) (*WidgetsClient, error) {
+	cardtemplatev1alpha1.SchemeBuilder.AddToScheme(scheme.Scheme)
+
 	config := *c
 	config.ContentConfig.GroupVersion = &schema.GroupVersion{
 		Group:   cardtemplatev1alpha1.Group,

@@ -41,7 +41,6 @@ tidy: ## Ensure that all Go imports are satisfied.
 generate: tidy ## Generate all CRDs.
 	go generate ./...
 
-
 .PHONY: kind-up
 kind-up: ## Starts a KinD cluster for local development.
 	@$(KIND) get kubeconfig --name $(CLUSTER_NAME) >/dev/null 2>&1 || $(KIND) create cluster --name=$(CLUSTER_NAME)
@@ -50,12 +49,18 @@ kind-up: ## Starts a KinD cluster for local development.
 kind-down: ## Shuts down the KinD cluster.
 	@$(KIND) delete cluster --name=$(CLUSTER_NAME)
 
-
 .PHONY: kind-certs
 kind-certs: ## Copy CA.crt from kind.
 	rm ca.crt || true
 	docker cp $(CLUSTER_NAME)-control-plane:/etc/kubernetes/pki/ca.crt ca.crt
 	base64 -i ca.crt
+
+.PHONY: demo
+demo: ## Starts demo.
+	$(KUBECTL) apply -f crds/
+	$(KUBECTL) apply -f testdata/cardtemplate-dev.yaml
+	go run main.go -kubeconfig $(HOME)/.kube/config
+
 
 .PHONY: help
 help: ## Print this help.

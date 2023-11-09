@@ -4,7 +4,9 @@ go 1.21.3
 
 require (
 	github.com/davecgh/go-spew v1.1.1
+	github.com/go-chi/chi/v5 v5.0.10
 	github.com/itchyny/gojq v0.12.13
+	github.com/rs/zerolog v1.31.0
 	k8s.io/api v0.28.3
 	k8s.io/apimachinery v0.28.3
 	k8s.io/client-go v0.28.3

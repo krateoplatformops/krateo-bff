@@ -37,7 +37,7 @@ type CardTemplateSpec struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:scope=Cluster,categories={krateo,widget}
+// +kubebuilder:resource:scope=Namespaced,categories={krateo,widget}
 
 // CardTemplate is ui widgets card configuration.
 type CardTemplate struct {

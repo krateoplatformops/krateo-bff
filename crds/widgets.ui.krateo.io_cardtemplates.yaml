@@ -15,7 +15,7 @@ spec:
     listKind: CardTemplateList
     plural: cardtemplates
     singular: cardtemplate
-  scope: Cluster
+  scope: Namespaced
   versions:
   - name: v1alpha1
     schema:

@@ -35,7 +35,7 @@ func (rc *cardTemplates) Get(ctx context.Context, name string, options metav1.Ge
 	result = &cardtemplatev1alpha1.CardTemplate{}
 	err = rc.client.Get().
 		Resource("cardtemplates").
-		Name(name).
+		Name(name).Namespace(rc.ns).
 		VersionedParams(&options, scheme.ParameterCodec).
 		Do(ctx).
 		Into(result)
@@ -50,6 +50,7 @@ func (rc *cardTemplates) List(ctx context.Context, opts metav1.ListOptions) (res
 	result = &cardtemplatev1alpha1.CardTemplateList{}
 	err = rc.client.Get().
 		Resource("cardtemplates").
+		Namespace(rc.ns).
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Timeout(timeout).
 		Do(ctx).

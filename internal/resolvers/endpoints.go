@@ -11,7 +11,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-func Endpoint(ctx context.Context, rc *rest.Config, ref *core.Reference) (*core.Endpoint, error) {
+func EndpointGetOne(ctx context.Context, rc *rest.Config, ref *core.Reference) (*core.Endpoint, error) {
 	bcl, err := builtins.NewForConfig(rc)
 	if err != nil {
 		return nil, err

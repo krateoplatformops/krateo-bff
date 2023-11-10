@@ -81,15 +81,15 @@ func main() {
 	healthy := int32(0)
 
 	r := chi.NewRouter()
-
 	r.Use(middleware.RequestID)
 	r.Use(routes.Logger(log))
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.URLFormat)
-	//r.Use(render.SetContentType(render.ContentTypeJSON))
 
-	r.Get("/health", health.Check(&healthy, fmt.Sprintf("ver: %s (bld: %s)", Version, Build), serviceName).ServeHTTP)
-	r.Get(cardtemplates.GetPath(), cardtemplates.Get(cfg).ServeHTTP)
+	health.Register(r, health.Options{
+		Healty: &healthy, Version: Version, Build: Build, ServiceName: serviceName,
+	})
+	cardtemplates.Register(r, cfg)
 
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", *servicePort),

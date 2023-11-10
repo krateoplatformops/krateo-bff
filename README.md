@@ -2,18 +2,35 @@
 
 Krateo **B**ackend **F**or **F**rontend.
 
-## API
+## CardTemplate API
 
-### CardTemplates
+### Get all card templates
 
-Get a single card template.
+|                   |                                                                                     |
+|:------------------|:------------------------------------------------------------------------------------|
+| **Verb**          | `GET`                                                                               |
+| **Path**          | `/apis/widgets.ui.krateo.io/v1alpha1/namespaces/${NAMESPACE}/cardtemplates`         |
+| **Path Params**   | `${NAMESPACE}` is the namespace where your `CardTemplate` object is located         |
+| **Query Params**  | `eval`: if _false_ do not evaluate `CardTemplate` expressions (default: true)       |
 
-|         |       |
-|:--------|:------------------------------------------------------------------------------------|
-|*Method* | `GET`                                                                               |
-|*Path*   | `/apis/widgets.ui.krateo.io/v1alpha1/namespaces/${NAMESPACE}/cardtemplates/${NAME}` |
+> Example:
+>
+> ```sh
+> curl http://localhost:8080/apis/widgets.ui.krateo.io/v1alpha1/namespaces/dev-system/cardtemplates
+> ```
 
-where:
+### Get one card template
 
-- `${NAMESPACE}` is the namespace where your `CardTemplate` object is located
-- `${NAME}` is your `CardTemplate` object name
+|                   |                                                                                     |
+|:------------------|:------------------------------------------------------------------------------------|
+| **Method**        | `GET`                                                                               |
+| **Path**          | `/apis/widgets.ui.krateo.io/v1alpha1/namespaces/${NAMESPACE}/cardtemplates/${NAME}` |
+| **Path Params**   | `${NAMESPACE}` is the namespace where your `CardTemplate` object is located         |
+|                   | `${NAME}` is your `CardTemplate` object name                                        |
+| **Query Params**  | `eval`: if _false_ do not evaluate `CardTemplate` expressions (default: true)       |
+
+> Example:
+>
+> ```sh
+> curl http://localhost:8080/apis/widgets.ui.krateo.io/v1alpha1/namespaces/dev-system/cardtemplates/card-dev
+> ```

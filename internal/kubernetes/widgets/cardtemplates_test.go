@@ -39,7 +39,7 @@ func TestCardTemplateGet(t *testing.T) {
 
 	ds := map[string]any{}
 	for _, x := range res.Spec.APIList {
-		ep, err := resolvers.Endpoint(context.TODO(), cfg, x.EndpointRef)
+		ep, err := resolvers.EndpointGetOne(context.TODO(), cfg, x.EndpointRef)
 		if err != nil {
 			t.Fatal(err)
 		}

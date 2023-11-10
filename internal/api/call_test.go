@@ -40,7 +40,7 @@ func TestCall(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	authn, err := resolvers.Endpoint(context.TODO(), rc, apiInfo.EndpointRef)
+	authn, err := resolvers.EndpointGetOne(context.TODO(), rc, apiInfo.EndpointRef)
 	if err != nil {
 		t.Fatal(err)
 	}

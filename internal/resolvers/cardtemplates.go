@@ -22,6 +22,9 @@ func CardTemplateGetAll(ctx context.Context, rc *rest.Config, ns string, eval bo
 	if err != nil {
 		return nil, err
 	}
+	all.APIVersion = cardtemplatev1alpha1.CardTemplateGroupVersionKind.GroupVersion().String()
+	all.Kind = "CardTemplateList"
+
 	if !eval {
 		return all, nil
 	}
@@ -44,6 +47,9 @@ func CardTemplateGetOne(ctx context.Context, rc *rest.Config, ref *core.Referenc
 	if err != nil {
 		return nil, err
 	}
+	res.APIVersion = cardtemplatev1alpha1.CardTemplateGroupVersionKind.GroupVersion().String()
+	res.Kind = cardtemplatev1alpha1.CardTemplateGroupVersionKind.Kind
+
 	if !eval {
 		return res, nil
 	}

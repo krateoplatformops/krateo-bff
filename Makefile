@@ -43,7 +43,9 @@ generate: tidy ## Generate all CRDs.
 
 .PHONY: kind-up
 kind-up: ## Starts a KinD cluster for local development.
-	@$(KIND) get kubeconfig --name $(CLUSTER_NAME) >/dev/null 2>&1 || $(KIND) create cluster --name=$(CLUSTER_NAME)
+	@$(KIND) get kubeconfig --name $(CLUSTER_NAME) >/dev/null 2>&1 || \
+		$(KIND) create cluster --name=$(CLUSTER_NAME)
+
 
 .PHONY: kind-down
 kind-down: ## Shuts down the KinD cluster.

@@ -34,7 +34,7 @@ var (
 func main() {
 	// Flags
 	kconfig := flag.String(clientcmd.RecommendedConfigPathFlag, "", "absolute path to the kubeconfig file")
-	debug := flag.Bool("debug", env.Bool("KRATEO_BFF_DEBUG", false), "dump verbose output")
+	debug := flag.Bool("debug", env.Bool("KRATEO_BFF_DEBUG", true), "dump verbose output")
 	servicePort := flag.Int("port", env.Int("KRATEO_BFF_PORT", 8080), "port to listen on")
 
 	flag.Usage = func() {

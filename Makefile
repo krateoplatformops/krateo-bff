@@ -61,7 +61,8 @@ kind-certs: ## Copy CA.crt from kind.
 demo: ## Starts demo.
 	$(KUBECTL) apply -f crds/
 	$(KUBECTL) apply -f testdata/cardtemplate-dev.yaml
-	go run main.go -kubeconfig $(HOME)/.kube/config
+	cp $(HOME)/.kube/config kubeconfig
+	go run main.go -kubeconfig kubeconfig
 
 
 .PHONY: help

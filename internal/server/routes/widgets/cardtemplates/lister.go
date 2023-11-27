@@ -15,6 +15,8 @@ import (
 	"github.com/krateoplatformops/krateo-bff/internal/resolvers"
 	"github.com/krateoplatformops/krateo-bff/internal/server/encode"
 	"github.com/rs/zerolog"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/utils/ptr"
 	"k8s.io/utils/strings/slices"
@@ -69,7 +71,12 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 			Strs("orgs", orgs).
 			Str("namespace", namespace).
 			Msg("unable to resolve card templates")
-		encode.Error(wri, http.StatusInternalServerError, err)
+		if apierrors.IsNotFound(err) {
+			encode.Error(wri, metav1.StatusReasonNotFound, http.StatusNotFound, err)
+		} else {
+			encode.Error(wri, metav1.StatusReasonNotAcceptable, http.StatusNotAcceptable, err)
+		}
+
 		return
 	}
 
@@ -89,7 +96,7 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 					Str("name", el.GetName()).
 					Str("namespace", namespace).
 					Msg("unable to resolve allowed verbs for sub in orgs")
-				encode.Error(wri, http.StatusInternalServerError, err)
+				encode.Error(wri, metav1.StatusReasonNotAcceptable, http.StatusNotAcceptable, err)
 				return
 			}
 
@@ -115,8 +122,8 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	wri.WriteHeader(http.StatusOK)
 	wri.Header().Set("Content-Type", "application/json")
+	wri.WriteHeader(http.StatusOK)
 
 	enc := json.NewEncoder(wri)
 	enc.SetIndent("", "  ")

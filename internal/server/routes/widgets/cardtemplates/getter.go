@@ -4,7 +4,6 @@ import (
 	"context"
 	"crypto/x509/pkix"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -17,20 +16,18 @@ import (
 	"github.com/krateoplatformops/krateo-bff/internal/server/encode"
 	"github.com/rs/zerolog"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/utils/ptr"
 	"k8s.io/utils/strings/slices"
 )
 
 const (
-	getterPathFmt = "/apis/%s/%s/namespaces/{namespace}/cardtemplates/{name}"
+	getterPath = "/apis/widgets.ui.krateo.io/v1alpha1/cardtemplates/{name}"
 )
 
 func newGetter(rc *rest.Config) (string, http.HandlerFunc) {
-	pattern := fmt.Sprintf(getterPathFmt, cardtemplatev1alpha1.Group, cardtemplatev1alpha1.Version)
 	handler := &getter{rc: rc}
-	return pattern, func(wri http.ResponseWriter, req *http.Request) {
+	return getterPath, func(wri http.ResponseWriter, req *http.Request) {
 		handler.ServeHTTP(wri, req)
 	}
 }
@@ -44,11 +41,12 @@ type getter struct {
 func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 	log := zerolog.Ctx(req.Context()).With().Logger()
 
-	namespace := chi.URLParam(req, "namespace")
+	//namespace := chi.URLParam(req, "namespace")
 	name := chi.URLParam(req, "name")
 
 	qs := req.URL.Query()
 
+	namespace := qs.Get("namespace")
 	sub := qs.Get("sub")
 	orgs := strings.Split(qs.Get("orgs"), ",")
 	eval := true
@@ -79,9 +77,9 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 			Msg("unable to resolve card template")
 
 		if apierrors.IsNotFound(err) {
-			encode.Error(wri, metav1.StatusReasonNotFound, http.StatusNotFound, err)
+			encode.NotFound(wri, err)
 		} else {
-			encode.Error(wri, metav1.StatusReasonNotAcceptable, http.StatusNotAcceptable, err)
+			encode.Invalid(wri, err)
 		}
 		return
 	}
@@ -101,7 +99,7 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 				Str("name", name).
 				Str("namespace", namespace).
 				Msg("unable to resolve allowed verbs for sub in orgs")
-			encode.Error(wri, metav1.StatusReasonNotAcceptable, http.StatusNotAcceptable, err)
+			encode.Invalid(wri, err)
 			return
 		}
 

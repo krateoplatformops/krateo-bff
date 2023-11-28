@@ -118,6 +118,12 @@ func main() {
 
 	// Listen for the interrupt signal.
 	log.Info().Msgf("server is ready to handle requests at @ %s", server.Addr)
+
+	chi.Walk(r, func(method string, route string, handler http.Handler, _ ...func(http.Handler) http.Handler) error {
+		log.Debug().Msgf("%s %s", method, route)
+		return nil
+	})
+
 	<-ctx.Done()
 
 	// Restore default behavior on the interrupt signal and notify user of shutdown.

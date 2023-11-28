@@ -4,32 +4,28 @@ import (
 	"context"
 	"crypto/x509/pkix"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
 
-	"github.com/go-chi/chi/v5"
 	cardtemplatev1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplate/v1alpha1"
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac"
 	"github.com/krateoplatformops/krateo-bff/internal/resolvers"
 	"github.com/krateoplatformops/krateo-bff/internal/server/encode"
 	"github.com/rs/zerolog"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/utils/ptr"
 	"k8s.io/utils/strings/slices"
 )
 
 const (
-	listerPathFmt = "/apis/%s/%s/namespaces/{namespace}/cardtemplates"
+	listerPath = "/apis/widgets.ui.krateo.io/v1alpha1/cardtemplates"
 )
 
 func newLister(rc *rest.Config) (string, http.HandlerFunc) {
-	pattern := fmt.Sprintf(listerPathFmt, cardtemplatev1alpha1.Group, cardtemplatev1alpha1.Version)
 	handler := &lister{rc: rc}
-	return pattern, func(wri http.ResponseWriter, req *http.Request) {
+	return listerPath, func(wri http.ResponseWriter, req *http.Request) {
 		handler.ServeHTTP(wri, req)
 	}
 }
@@ -43,10 +39,11 @@ type lister struct {
 func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 	log := zerolog.Ctx(req.Context()).With().Logger()
 
-	namespace := chi.URLParam(req, "namespace")
+	//namespace := chi.URLParam(req, "namespace")
 
 	qs := req.URL.Query()
 
+	namespace := qs.Get("namespace")
 	sub := qs.Get("sub")
 	orgs := strings.Split(qs.Get("orgs"), ",")
 	eval := true
@@ -72,9 +69,9 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 			Str("namespace", namespace).
 			Msg("unable to resolve card templates")
 		if apierrors.IsNotFound(err) {
-			encode.Error(wri, metav1.StatusReasonNotFound, http.StatusNotFound, err)
+			encode.NotFound(wri, err)
 		} else {
-			encode.Error(wri, metav1.StatusReasonNotAcceptable, http.StatusNotAcceptable, err)
+			encode.Invalid(wri, err)
 		}
 
 		return
@@ -96,7 +93,7 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 					Str("name", el.GetName()).
 					Str("namespace", namespace).
 					Msg("unable to resolve allowed verbs for sub in orgs")
-				encode.Error(wri, metav1.StatusReasonNotAcceptable, http.StatusNotAcceptable, err)
+				encode.Invalid(wri, err)
 				return
 			}
 

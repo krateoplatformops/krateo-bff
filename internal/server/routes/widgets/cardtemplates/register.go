@@ -10,6 +10,6 @@ const (
 )
 
 func Register(r *chi.Mux, rc *rest.Config) {
-	r.Get(newLister(rc))
 	r.Get(newGetter(rc))
+	r.Get(newLister(rc))
 }

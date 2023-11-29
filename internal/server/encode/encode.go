@@ -3,8 +3,6 @@ package encode
 import (
 	"encoding/json"
 	"net/http"
-
-	cardtemplatev1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplate/v1alpha1"
 )
 
 // Values of Status.Status
@@ -21,15 +19,19 @@ func Invalid(w http.ResponseWriter, err error) error {
 	return Error(w, StatusReasonInvalid, 422, err)
 }
 
+func BadRequest(w http.ResponseWriter, err error) error {
+	return Error(w, StatusReasonBadRequest, 400, err)
+}
+
 func Error(w http.ResponseWriter, reason StatusReason, code int, err error) error {
 	out := Status{
 		Status: StatusFailure,
 		Reason: reason,
 		Code:   code,
-		Details: &StatusDetails{
-			Group: cardtemplatev1alpha1.Group,
-			Kind:  cardtemplatev1alpha1.CardTemplateKind,
-		},
+		// Details: &StatusDetails{
+		// 	Group: cardtemplatev1alpha1.Group,
+		// 	Kind:  cardtemplatev1alpha1.CardTemplateKind,
+		// },
 		Message: err.Error(),
 	}
 

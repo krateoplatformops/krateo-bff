@@ -1,15 +1,4 @@
-package rbac
-
-type RoleInfo interface {
-	Kind() string
-	Name() string
-	Namespace() string
-}
-
-type SubjectInfo interface {
-	Kind() string
-	Name() string
-}
+package util
 
 type PolicyRule interface {
 	// Verbs is a list of Verbs that apply to ALL the ResourceKinds contained in this rule. '*' represents all verbs.
@@ -46,39 +35,4 @@ func (pr *policyRule) Resources() []string {
 
 func (pr *policyRule) ResourceNames() []string {
 	return pr.resourceNames
-}
-
-var _ SubjectInfo = (*subjectInfo)(nil)
-
-type subjectInfo struct {
-	kind string
-	name string
-}
-
-func (si *subjectInfo) Kind() string {
-	return si.kind
-}
-
-func (si *subjectInfo) Name() string {
-	return si.name
-}
-
-var _ RoleInfo = (*roleInfo)(nil)
-
-type roleInfo struct {
-	kind      string
-	name      string
-	namespace string
-}
-
-func (ri *roleInfo) Kind() string {
-	return ri.kind
-}
-
-func (ri *roleInfo) Name() string {
-	return ri.name
-}
-
-func (ri *roleInfo) Namespace() string {
-	return ri.namespace
 }

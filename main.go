@@ -16,6 +16,7 @@ import (
 	"github.com/krateoplatformops/krateo-bff/internal/env"
 	"github.com/krateoplatformops/krateo-bff/internal/server/routes"
 	"github.com/krateoplatformops/krateo-bff/internal/server/routes/health"
+	"github.com/krateoplatformops/krateo-bff/internal/server/routes/verbs"
 	"github.com/krateoplatformops/krateo-bff/internal/server/routes/widgets/cardtemplates"
 	"github.com/rs/zerolog"
 	"k8s.io/client-go/rest"
@@ -34,7 +35,7 @@ var (
 func main() {
 	// Flags
 	kconfig := flag.String(clientcmd.RecommendedConfigPathFlag, "", "absolute path to the kubeconfig file")
-	debug := flag.Bool("debug", env.Bool("KRATEO_BFF_DEBUG", true), "dump verbose output")
+	debug := flag.Bool("debug", env.Bool("KRATEO_BFF_DEBUG", false), "dump verbose output")
 	servicePort := flag.Int("port", env.Int("KRATEO_BFF_PORT", 8080), "port to listen on")
 
 	flag.Usage = func() {
@@ -90,6 +91,7 @@ func main() {
 		Healty: &healthy, Version: Version, Build: Build, ServiceName: serviceName,
 	})
 	cardtemplates.Register(r, cfg)
+	verbs.Register(r, cfg)
 
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", *servicePort),
@@ -119,10 +121,12 @@ func main() {
 	// Listen for the interrupt signal.
 	log.Info().Msgf("server is ready to handle requests at @ %s", server.Addr)
 
-	chi.Walk(r, func(method string, route string, handler http.Handler, _ ...func(http.Handler) http.Handler) error {
-		log.Debug().Msgf("%s %s", method, route)
-		return nil
-	})
+	if *debug {
+		chi.Walk(r, func(method string, route string, handler http.Handler, _ ...func(http.Handler) http.Handler) error {
+			log.Debug().Msgf("%s %s", method, route)
+			return nil
+		})
+	}
 
 	<-ctx.Done()
 

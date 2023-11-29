@@ -2,7 +2,6 @@ package cardtemplates
 
 import (
 	"context"
-	"crypto/x509/pkix"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -11,7 +10,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/krateoplatformops/krateo-bff/apis/core"
 	cardtemplatev1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplate/v1alpha1"
-	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac"
+	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac/util"
+	rbacutil "github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac/util"
 	"github.com/krateoplatformops/krateo-bff/internal/resolvers"
 	"github.com/krateoplatformops/krateo-bff/internal/server/encode"
 	"github.com/rs/zerolog"
@@ -88,9 +88,11 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		gr := cardtemplatev1alpha1.CardTemplateGroupVersionKind.GroupVersion().
 			WithResource("cardtemplates").
 			GroupResource()
-		all, err := rbac.AllowedVerbsOnResourceForSubject(r.rc, pkix.Name{
-			CommonName: sub, Organization: orgs,
-		}, gr, el.GetName(), el.GetNamespace())
+		all, err := rbacutil.GetAllowedVerbs(context.TODO(), r.rc, util.GetAllowedVerbsOption{
+			Subject: sub, Groups: orgs,
+			GroupResource: gr, ResourceName: el.GetName(),
+			Namespace: el.GetNamespace(),
+		})
 		if err != nil {
 			log.Err(err).
 				Str("sub", sub).

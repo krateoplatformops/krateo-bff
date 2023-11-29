@@ -2,118 +2,59 @@ package rbac
 
 import (
 	"context"
-	"crypto/x509/pkix"
-	"strings"
+	"time"
 
-	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/objects"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"k8s.io/apimachinery/pkg/runtime/schema"
+	rbacv1 "k8s.io/api/rbac/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
-	"k8s.io/utils/strings/slices"
 )
 
-func RolesForSubject(restConfig *rest.Config, sub pkix.Name, namespace string) ([]RoleInfo, error) {
-	res := []RoleInfo{}
-
-	if len(namespace) == 0 {
-		all, err := findClusterRolesForSubject(restConfig, sub)
-		if err != nil {
-			return nil, err
-		}
-		res = append(res, all...)
-	}
-
-	all, err := findRolesForSubject(restConfig, sub, namespace)
-	if err != nil {
-		return nil, err
-	}
-	res = append(res, all...)
-
-	return res, nil
+type RoleInterface interface {
+	Get(ctx context.Context, name string, opts metav1.GetOptions) (*rbacv1.Role, error)
+	List(ctx context.Context, opts metav1.ListOptions) (*rbacv1.RoleList, error)
 }
 
-func findClusterRolesForSubject(restConfig *rest.Config, sub pkix.Name) ([]RoleInfo, error) {
-	resolver, err := objects.NewObjectResolver(restConfig)
-	if err != nil {
-		return nil, err
-	}
+var _ RoleInterface = (*roles)(nil)
 
-	binds, err := resolver.List(context.TODO(), schema.GroupVersionKind{
-		Group:   "rbac.authorization.k8s.io",
-		Version: "v1",
-		Kind:    "ClusterRoleBinding",
-	}, "")
-	if err != nil {
-		return nil, err
-	}
-
-	acceptFn := func(si SubjectInfo) bool {
-		ok := strings.EqualFold(si.Kind(), "group")
-		ok = ok && slices.Contains(sub.Organization, si.Name())
-		return ok
-	}
-
-	roles := extractRoleInfo(binds, acceptFn)
-	return roles, nil
+type roles struct {
+	client rest.Interface
+	ns     string
 }
 
-func findRolesForSubject(restConfig *rest.Config, sub pkix.Name, namespace string) ([]RoleInfo, error) {
-	resolver, err := objects.NewObjectResolver(restConfig)
-	if err != nil {
-		return nil, err
+func newRoles(c *RbacClient, namespace string) *roles {
+	return &roles{
+		client: c.RESTClient(),
+		ns:     namespace,
 	}
-
-	binds, err := resolver.List(context.TODO(), schema.GroupVersionKind{
-		Group:   "rbac.authorization.k8s.io",
-		Version: "v1",
-		Kind:    "RoleBinding",
-	}, namespace)
-	if err != nil {
-		return nil, err
-	}
-
-	acceptFn := func(si SubjectInfo) bool {
-		ok := strings.EqualFold(si.Kind(), "group")
-		ok = ok && slices.Contains(sub.Organization, si.Name())
-		return ok
-	}
-
-	roles := extractRoleInfo(binds, acceptFn)
-	return roles, nil
 }
 
-func extractRoleInfo(binds *unstructured.UnstructuredList, acceptFn func(SubjectInfo) bool) []RoleInfo {
-	res := []RoleInfo{}
+// Get takes name of the role, and returns the corresponding role object, and an error if there is any.
+func (c *roles) Get(ctx context.Context, name string, options metav1.GetOptions) (result *rbacv1.Role, err error) {
+	result = &rbacv1.Role{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("roles").
+		Name(name).
+		VersionedParams(&options, scheme.ParameterCodec).
+		Do(ctx).
+		Into(result)
+	return
+}
 
-	for _, el := range binds.Items {
-		roleKind, _, _ := unstructured.NestedString(el.Object, "roleRef", "kind")
-		roleName, _, _ := unstructured.NestedString(el.Object, "roleRef", "name")
-		roleNamespace, ok, err := unstructured.NestedString(el.Object, "roleRef", "namespace")
-		if !ok || err != nil {
-			roleNamespace, _, _ = unstructured.NestedString(el.Object, "metadata", "namespace")
-		}
-
-		subs, _, _ := unstructured.NestedSlice(el.Object, "subjects")
-		for _, x := range subs {
-			y, ok := x.(map[string]interface{})
-			if !ok {
-				continue
-			}
-			subjectKind, _, _ := unstructured.NestedString(y, "kind")
-			subjectName, _, _ := unstructured.NestedString(y, "name")
-
-			if acceptFn != nil && acceptFn(&subjectInfo{
-				kind: subjectKind,
-				name: subjectName,
-			}) {
-				res = append(res, &roleInfo{
-					kind:      roleKind,
-					name:      roleName,
-					namespace: roleNamespace,
-				})
-			}
-		}
+// List takes label and field selectors, and returns the list of Roles that match those selectors.
+func (c *roles) List(ctx context.Context, opts metav1.ListOptions) (result *rbacv1.RoleList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
 	}
-
-	return res
+	result = &rbacv1.RoleList{}
+	err = c.client.Get().
+		Namespace(c.ns).
+		Resource("roles").
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
+		Do(ctx).
+		Into(result)
+	return
 }

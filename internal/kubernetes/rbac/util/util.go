@@ -9,7 +9,7 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-type GetAllowedVerbsOption struct {
+type ResourceInfo struct {
 	Subject       string
 	Groups        []string
 	GroupResource schema.GroupResource
@@ -17,7 +17,24 @@ type GetAllowedVerbsOption struct {
 	Namespace     string
 }
 
-func GetAllowedVerbs(ctx context.Context, restConfig *rest.Config, opts GetAllowedVerbsOption) ([]string, error) {
+func CanListResource(ctx context.Context, restConfig *rest.Config, opts ResourceInfo) (bool, error) {
+	verbs, err := GetAllowedVerbs(ctx, restConfig, opts)
+	if err != nil {
+		return false, err
+	}
+
+	if slices.Contains(verbs, "list") {
+		return true, nil
+	}
+
+	if slices.Contains(verbs, "get") {
+		return true, nil
+	}
+
+	return false, nil
+}
+
+func GetAllowedVerbs(ctx context.Context, restConfig *rest.Config, opts ResourceInfo) ([]string, error) {
 	rbacClient, err := rbac.NewForConfig(restConfig)
 	if err != nil {
 		return []string{}, err
@@ -69,6 +86,15 @@ func allowedVerbs(rules []PolicyRule, gr schema.GroupResource, resourceName stri
 			continue
 		}
 
+		ok := slices.Contains(x.Resources(), "*")
+		if !ok {
+			ok = slices.Contains(x.Resources(), gr.Resource)
+			//ok = ok && !checkResourceName
+		}
+		if !ok {
+			continue
+		}
+
 		if checkResourceName {
 			if slices.Contains(x.ResourceNames(), resourceName) {
 				result = append(result, x.Verbs()...)
@@ -77,15 +103,9 @@ func allowedVerbs(rules []PolicyRule, gr schema.GroupResource, resourceName stri
 		}
 
 		if len(x.ResourceNames()) > 0 {
-			continue
-		}
-
-		ok := slices.Contains(x.Resources(), "*")
-		if !ok {
-			ok = slices.Contains(x.Resources(), gr.Resource)
-			ok = ok && !checkResourceName
-		}
-		if !ok {
+			if slices.Contains(x.Verbs(), "get") {
+				result = append(result, x.Verbs()...)
+			}
 			continue
 		}
 

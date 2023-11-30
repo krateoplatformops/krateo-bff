@@ -3,6 +3,7 @@ package cardtemplates
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -16,6 +17,7 @@ import (
 	"github.com/krateoplatformops/krateo-bff/internal/server/encode"
 	"github.com/rs/zerolog"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/rest"
 	"k8s.io/utils/ptr"
 	"k8s.io/utils/strings/slices"
@@ -41,7 +43,6 @@ type getter struct {
 func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 	log := zerolog.Ctx(req.Context()).With().Logger()
 
-	//namespace := chi.URLParam(req, "namespace")
 	name := chi.URLParam(req, "name")
 
 	qs := req.URL.Query()
@@ -55,6 +56,33 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		if err == nil {
 			eval = ok
 		}
+	}
+
+	ok, err := rbacutil.CanListResource(context.TODO(), r.rc, rbacutil.ResourceInfo{
+		Subject: sub,
+		Groups:  orgs,
+		GroupResource: schema.GroupResource{
+			Group: cardtemplatev1alpha1.Group, Resource: "cardtemplates",
+		},
+		ResourceName: name,
+		Namespace:    namespace,
+	})
+	if err != nil {
+		log.Err(err).
+			Str("sub", sub).
+			Strs("orgs", orgs).
+			Str("name", name).
+			Str("namespace", namespace).
+			Bool("eval", eval).
+			Msg("checking if 'get' verb is allowed")
+		encode.Invalid(wri, err)
+		return
+	}
+
+	if !ok {
+		encode.Forbidden(wri,
+			fmt.Errorf("forbidden: User %q cannot get resource \"cardtemplates/%s\" in API group \"widgets.ui.krateo.io\"", sub, name))
+		return
 	}
 
 	log.Debug().
@@ -88,7 +116,7 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		gr := cardtemplatev1alpha1.CardTemplateGroupVersionKind.GroupVersion().
 			WithResource("cardtemplates").
 			GroupResource()
-		all, err := rbacutil.GetAllowedVerbs(context.TODO(), r.rc, util.GetAllowedVerbsOption{
+		all, err := rbacutil.GetAllowedVerbs(context.TODO(), r.rc, util.ResourceInfo{
 			Subject: sub, Groups: orgs,
 			GroupResource: gr, ResourceName: el.GetName(),
 			Namespace: el.GetNamespace(),

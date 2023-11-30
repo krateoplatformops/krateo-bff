@@ -3,6 +3,7 @@ package cardtemplates
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -14,13 +15,16 @@ import (
 	"github.com/krateoplatformops/krateo-bff/internal/server/encode"
 	"github.com/rs/zerolog"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/rest"
 	"k8s.io/utils/ptr"
 	"k8s.io/utils/strings/slices"
 )
 
 const (
-	listerPath = "/apis/widgets.ui.krateo.io/v1alpha1/cardtemplates"
+	listerPath                    = "/apis/widgets.ui.krateo.io/v1alpha1/cardtemplates"
+	forbiddenAtClusterScopeMsgFmt = "forbidden: User %q cannot list resource \"cardtemplates\" in API group \"widgets.ui.krateo.io\" at cluster scope"
+	forbiddenInNamespaceMsgFmt    = "forbidden: User %q cannot list resource \"cardtemplates\" in API group \"widgets.ui.krateo.io\" in namespace %s"
 )
 
 func newLister(rc *rest.Config) (string, http.HandlerFunc) {
@@ -54,6 +58,34 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		}
 	}
 
+	ok, err := rbacutil.CanListResource(context.TODO(), r.rc, rbacutil.ResourceInfo{
+		Subject: sub,
+		Groups:  orgs,
+		GroupResource: schema.GroupResource{
+			Group: cardtemplatev1alpha1.Group, Resource: "cardtemplates",
+		},
+		Namespace: namespace,
+	})
+	if err != nil {
+		log.Err(err).
+			Str("sub", sub).
+			Strs("orgs", orgs).
+			Str("namespace", namespace).
+			Bool("eval", eval).
+			Msg("checking if 'get' verb is allowed")
+		encode.Invalid(wri, err)
+		return
+	}
+
+	if !ok {
+		if len(namespace) > 0 {
+			encode.Forbidden(wri, fmt.Errorf(forbiddenInNamespaceMsgFmt, sub, namespace))
+		} else {
+			encode.Forbidden(wri, fmt.Errorf(forbiddenAtClusterScopeMsgFmt, sub))
+		}
+		return
+	}
+
 	log.Debug().
 		Str("sub", sub).
 		Strs("orgs", orgs).
@@ -82,7 +114,7 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 			WithResource("cardtemplates").
 			GroupResource()
 		for _, el := range res.Items {
-			all, err := rbacutil.GetAllowedVerbs(context.TODO(), r.rc, util.GetAllowedVerbsOption{
+			all, err := rbacutil.GetAllowedVerbs(context.TODO(), r.rc, util.ResourceInfo{
 				Subject: sub, Groups: orgs,
 				GroupResource: gr, ResourceName: el.GetName(),
 				Namespace: el.GetNamespace(),

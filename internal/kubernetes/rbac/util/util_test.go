@@ -12,13 +12,35 @@ import (
 	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
+func TestCanListResource(t *testing.T) {
+	restConfig, err := newRestConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ok, err := CanListResource(context.TODO(), restConfig, ResourceInfo{
+		Subject: "cyberjoker",
+		Groups:  []string{"devs"},
+		GroupResource: schema.GroupResource{
+			Group: "widgets.ui.krateo.io", Resource: "cardtemplates",
+		},
+		//ResourceName: "card-dev",
+		//Namespace:    "dev-system",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	fmt.Println(ok)
+}
+
 func TestGetAllowedVerbs(t *testing.T) {
 	restConfig, err := newRestConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	all, err := GetAllowedVerbs(context.TODO(), restConfig, GetAllowedVerbsOption{
+	all, err := GetAllowedVerbs(context.TODO(), restConfig, ResourceInfo{
 		Subject: "cyberjoker",
 		Groups:  []string{"devs"},
 		GroupResource: schema.GroupResource{

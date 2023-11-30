@@ -11,6 +11,10 @@ const (
 	StatusFailure = "Failure"
 )
 
+func Forbidden(w http.ResponseWriter, err error) error {
+	return Error(w, StatusReasonForbidden, 403, err)
+}
+
 func NotFound(w http.ResponseWriter, err error) error {
 	return Error(w, StatusReasonNotFound, 404, err)
 }
@@ -25,9 +29,11 @@ func BadRequest(w http.ResponseWriter, err error) error {
 
 func Error(w http.ResponseWriter, reason StatusReason, code int, err error) error {
 	out := Status{
-		Status: StatusFailure,
-		Reason: reason,
-		Code:   code,
+		Kind:       "Status",
+		APIVersion: "v1",
+		Status:     StatusFailure,
+		Reason:     reason,
+		Code:       code,
 		// Details: &StatusDetails{
 		// 	Group: cardtemplatev1alpha1.Group,
 		// 	Kind:  cardtemplatev1alpha1.CardTemplateKind,
@@ -193,6 +199,8 @@ const (
 
 // Status is a return value for calls that don't return other objects.
 type Status struct {
+	Kind       string `json:"kind,omitempty"`
+	APIVersion string `json:"apiVersion,omitempty"`
 	// Status of the operation.
 	// One of: "Success" or "Failure".
 	Status string `json:"status,omitempty"`

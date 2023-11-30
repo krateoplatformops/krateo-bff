@@ -61,7 +61,7 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		Msg("resolving allowed verbs")
 
 	all, err := rbacutil.GetAllowedVerbs(context.TODO(), r.rc,
-		util.GetAllowedVerbsOption{
+		util.ResourceInfo{
 			Subject: sub, Groups: orgs,
 			GroupResource: gr,
 			ResourceName:  name,

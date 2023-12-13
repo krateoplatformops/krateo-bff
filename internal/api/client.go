@@ -10,7 +10,9 @@ import (
 func HTTPClientForEndpoint(authn *core.Endpoint) (*http.Client, error) {
 	rt, err := tlsConfigFor(authn)
 	if err != nil {
-		return http.DefaultClient, err
+		return &http.Client{
+			Transport: defaultTransport(),
+		}, err
 	}
 
 	if authn.Debug {

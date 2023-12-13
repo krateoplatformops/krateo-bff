@@ -18,7 +18,7 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-func TestCall(t *testing.T) {
+func TestCallNoProxy(t *testing.T) {
 	apiInfo := core.API{
 		Name: "test",
 		Path: ptr.To("/anything"),
@@ -59,6 +59,45 @@ func TestCall(t *testing.T) {
 	}
 
 	spew.Dump(resp)
+}
+
+func TestCallProxy(t *testing.T) {
+	apiInfo := core.API{
+		Name: "test",
+		Path: ptr.To("/apis/widgets.ui.krateo.io/v1alpha1/namespaces/dev-system/cardtemplates"),
+		Verb: ptr.To("GET"),
+		Headers: []string{
+			"User-Agent: Test Call With Proxy",
+		},
+		EndpointRef: &core.Reference{
+			Name:      "cyberjoker-clientconfig",
+			Namespace: "default",
+		},
+	}
+
+	rc, err := newRestConfig()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	authn, err := resolvers.EndpointGetOne(context.TODO(), rc, apiInfo.EndpointRef)
+	if err != nil {
+		t.Fatal(err)
+	}
+	authn.Debug = true
+
+	httpClient, err := api.HTTPClientForEndpoint(authn)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	_, err = api.Call(context.TODO(), httpClient, api.CallOptions{
+		API:      &apiInfo,
+		Endpoint: authn,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
 }
 
 func newRestConfig() (*rest.Config, error) {

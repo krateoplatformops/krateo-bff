@@ -1,0 +1,39 @@
+---
+apiVersion: layout.ui.krateo.io/v1alpha1
+kind: Column
+metadata:
+  name: card-dev
+  namespace: dev-system
+spec:
+  app:
+    props:
+      width: 12 --> string
+    content:
+    - toolbar:
+    - cardTemplatelist:
+#      - ${ .cardTemplateList.items }
+  api:
+  - name: cardTemplatelist
+    path: "/apis/widgets.ui.krateo.io/v1alpha1/cardtemplates?namespace=dev-system"
+    endpointRef:
+      name: krateogateway-endpoint
+      namespace: krateo-system
+---
+
+
+---
+apiVersion: layout.ui.krateo.io/v1alpha1
+kind: Column
+metadata:
+  name: column-dev
+  namespace: dev-system
+spec:
+  props:
+    width: "12"
+  content:
+    cardTemplatelist:
+      ref:
+        name: card-dev
+        namespace: dev-system
+      items: # array of resolved .cardTemplateList.items => this should be in status but...
+

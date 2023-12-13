@@ -28,6 +28,10 @@ func EndpointGetOne(ctx context.Context, rc *rest.Config, ref *core.Reference) (
 		return res, fmt.Errorf("missed required attribute for endpoint: server")
 	}
 
+	if v, ok := sec.Data["proxy-url"]; ok {
+		res.ProxyURL = string(v)
+	}
+
 	if v, ok := sec.Data["token"]; ok {
 		res.Token = string(v)
 	}
@@ -41,15 +45,15 @@ func EndpointGetOne(ctx context.Context, rc *rest.Config, ref *core.Reference) (
 	}
 
 	if v, ok := sec.Data["certificate-authority-data"]; ok {
-		res.CertificateAuthorityData = []byte(v)
+		res.CertificateAuthorityData = string(v)
 	}
 
 	if v, ok := sec.Data["client-key-data"]; ok {
-		res.ClientCertificateData = []byte(v)
+		res.ClientKeyData = string(v)
 	}
 
 	if v, ok := sec.Data["client-certificate-data"]; ok {
-		res.ClientCertificateData = []byte(v)
+		res.ClientCertificateData = string(v)
 	}
 
 	if v, ok := sec.Data["debug"]; ok {

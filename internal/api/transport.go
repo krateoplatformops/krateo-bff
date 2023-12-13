@@ -3,34 +3,98 @@ package api
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/base64"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httputil"
+	"net/url"
 	"os"
+	"time"
 
 	"github.com/krateoplatformops/krateo-bff/apis/core"
 )
 
 func tlsConfigFor(authn *core.Endpoint) (http.RoundTripper, error) {
-	if !authn.HasCertAuth() {
-		return http.DefaultTransport, nil
+	res := defaultTransport()
+
+	if authn.ProxyURL != "" {
+		u, err := parseProxyURL(authn.ProxyURL)
+		if err != nil {
+			return nil, err
+		}
+
+		res.Proxy = http.ProxyURL(u)
 	}
 
-	cert, err := tls.X509KeyPair(authn.ClientCertificateData, authn.ClientKeyData)
+	if !authn.HasCertAuth() {
+		return res, nil
+	}
+
+	certData, err := base64.StdEncoding.DecodeString(authn.ClientCertificateData)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to decode client certificate data")
+	}
+
+	keyData, err := base64.StdEncoding.DecodeString(authn.ClientKeyData)
+	if err != nil {
+		return nil, fmt.Errorf("unable to decode client key data")
+	}
+
+	cert, err := tls.X509KeyPair(certData, keyData)
+	if err != nil {
+		return res, err
 	}
 
 	caCertPool := x509.NewCertPool()
-	caCertPool.AppendCertsFromPEM(authn.CertificateAuthorityData)
+
+	if len(authn.CertificateAuthorityData) > 0 {
+		caData, err := base64.StdEncoding.DecodeString(authn.CertificateAuthorityData)
+		if err != nil {
+			return nil, fmt.Errorf("unable to decode certificate authority data")
+		}
+
+		caCertPool.AppendCertsFromPEM(caData)
+	}
+
 	tlsConfig := &tls.Config{
 		RootCAs:      caCertPool,
 		Certificates: []tls.Certificate{cert},
 	}
 
+	res.TLSClientConfig = tlsConfig
+	return res, nil
+}
+
+func defaultTransport() *http.Transport {
+	dialer := &net.Dialer{
+		Timeout:   30 * time.Second,
+		KeepAlive: 30 * time.Second,
+	}
+
 	return &http.Transport{
-		TLSClientConfig: tlsConfig,
-	}, nil
+		Proxy:                 http.ProxyFromEnvironment,
+		DialContext:           dialer.DialContext,
+		ForceAttemptHTTP2:     true,
+		MaxIdleConns:          100,
+		IdleConnTimeout:       90 * time.Second,
+		TLSHandshakeTimeout:   10 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+	}
+}
+
+func parseProxyURL(proxyURL string) (*url.URL, error) {
+	u, err := url.Parse(proxyURL)
+	if err != nil {
+		return nil, fmt.Errorf("could not parse: %v", proxyURL)
+	}
+
+	switch u.Scheme {
+	case "http", "https", "socks5":
+	default:
+		return nil, fmt.Errorf("unsupported scheme %q, must be http, https, or socks5", u.Scheme)
+	}
+	return u, nil
 }
 
 type debuggingRoundTripper struct {

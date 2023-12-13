@@ -5,14 +5,17 @@ package core
 type Endpoint struct {
 	Server string `json:"server"`
 
-	// CertificateAuthorityData contains PEM-encoded certificate authority certificates.
-	CertificateAuthorityData []byte `json:"certificate-authority-data,omitempty"`
+	// +optional
+	ProxyURL string `json:"proxy-url,omitempty"`
 
-	// ClientCertificateData contains PEM-encoded data from a client cert file for TLS.
-	ClientCertificateData []byte `json:"client-certificate-data,omitempty"`
+	// CertificateAuthorityData contains Base64 PEM-encoded certificate authority certificates.
+	CertificateAuthorityData string `json:"certificate-authority-data,omitempty"`
 
-	// ClientKeyData contains PEM-encoded data from a client key file for TLS.
-	ClientKeyData []byte `json:"client-key-data,omitempty"`
+	// ClientCertificateData contains Base64 PEM-encoded data from a client cert file for TLS.
+	ClientCertificateData string `json:"client-certificate-data,omitempty"`
+
+	// ClientKeyData contains Base64 PEM-encoded data from a client key file for TLS.
+	ClientKeyData string `json:"client-key-data,omitempty"`
 
 	// Token is the bearer token for authentication to the server.
 	Token string `json:"token,omitempty"`

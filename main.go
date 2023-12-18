@@ -36,7 +36,8 @@ func main() {
 	// Flags
 	kconfig := flag.String(clientcmd.RecommendedConfigPathFlag, "", "absolute path to the kubeconfig file")
 	debug := flag.Bool("debug", env.Bool("KRATEO_BFF_DEBUG", false), "dump verbose output")
-	servicePort := flag.Int("port", env.Int("KRATEO_BFF_PORT", 8080), "port to listen on")
+	port := flag.Int("port", env.Int("KRATEO_BFF_PORT", 8080), "port to listen on")
+	authnNS := flag.String("authn-namespace", env.String("AUTHN_NAMESPACE", ""), "krateo authn service namespace")
 
 	flag.Usage = func() {
 		fmt.Fprintln(flag.CommandLine.Output(), "Flags:")
@@ -64,7 +65,8 @@ func main() {
 			Str("version", Version).
 			Str("build", Build).
 			Str("debug", fmt.Sprintf("%t", *debug)).
-			Str("port", fmt.Sprintf("%d", *servicePort)).
+			Str("port", fmt.Sprintf("%d", *port)).
+			Str("authn-namespace", fmt.Sprintf("%d", *authnNS)).
 			Msg("configuration and build infos")
 	}
 
@@ -90,11 +92,11 @@ func main() {
 	health.Register(r, health.Options{
 		Healty: &healthy, Version: Version, Build: Build, ServiceName: serviceName,
 	})
-	cardtemplates.Register(r, cfg)
+	cardtemplates.Register(r, cfg, *authnNS)
 	verbs.Register(r, cfg)
 
 	server := &http.Server{
-		Addr:         fmt.Sprintf(":%d", *servicePort),
+		Addr:         fmt.Sprintf(":%d", *port),
 		Handler:      r,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 50 * time.Second,

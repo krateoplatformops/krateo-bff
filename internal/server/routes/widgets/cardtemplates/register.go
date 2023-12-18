@@ -9,7 +9,7 @@ const (
 	allowedVerbsAnnotationKey = "krateo.io/allowed-verbs"
 )
 
-func Register(r *chi.Mux, rc *rest.Config) {
-	r.Get(newGetter(rc))
-	r.Get(newLister(rc))
+func Register(r *chi.Mux, rc *rest.Config, authnNS string) {
+	r.Get(newGetter(rc, authnNS))
+	r.Get(newLister(rc, authnNS))
 }

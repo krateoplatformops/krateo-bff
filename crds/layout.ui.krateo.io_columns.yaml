@@ -60,6 +60,9 @@ spec:
                       items:
                         type: string
                       type: array
+                    krateoGateway:
+                      default: false
+                      type: boolean
                     name:
                       type: string
                     path:
@@ -127,6 +130,9 @@ spec:
                                         items:
                                           type: string
                                         type: array
+                                      krateoGateway:
+                                        default: false
+                                        type: boolean
                                       name:
                                         type: string
                                       path:
@@ -170,6 +176,9 @@ spec:
                                             items:
                                               type: string
                                             type: array
+                                          krateoGateway:
+                                            default: false
+                                            type: boolean
                                           name:
                                             type: string
                                           path:

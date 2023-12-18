@@ -18,9 +18,15 @@ func TestResolveCardTemplateWithEval(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	nfo, err := resolvers.CardTemplateGetOne(context.TODO(), rc, &core.Reference{
-		Name: "card-dev", Namespace: "dev-system",
-	}, true)
+	opts := resolvers.CardTemplateGetOneOpts{
+		RESTConfig: rc,
+		AuthnNS:    "default",
+		Username:   "demo",
+	}
+	nfo, err := resolvers.CardTemplateGetOne(context.TODO(),
+		&core.Reference{
+			Name: "card-dev", Namespace: "dev-system",
+		}, opts)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -33,9 +39,16 @@ func TestResolveCardTemplateWithoutEval(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	nfo, err := resolvers.CardTemplateGetOne(context.TODO(), rc, &core.Reference{
-		Name: "card-dev", Namespace: "dev-system",
-	}, false)
+	opts := resolvers.CardTemplateGetOneOpts{
+		RESTConfig: rc,
+		AuthnNS:    "default",
+		Username:   "demo",
+	}
+
+	nfo, err := resolvers.CardTemplateGetOne(context.TODO(),
+		&core.Reference{
+			Name: "card-dev", Namespace: "dev-system",
+		}, opts)
 	if err != nil {
 		t.Fatal(err)
 	}

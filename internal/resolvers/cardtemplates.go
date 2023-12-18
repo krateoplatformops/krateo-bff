@@ -2,6 +2,7 @@ package resolvers
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/krateoplatformops/krateo-bff/apis/core"
 	cardtemplatev1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplate/v1alpha1"
@@ -10,27 +11,35 @@ import (
 	"github.com/krateoplatformops/krateo-bff/internal/tmpl"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
+	"k8s.io/utils/ptr"
 )
 
-func CardTemplateGetAll(ctx context.Context, rc *rest.Config, ns string, eval bool) (*cardtemplatev1alpha1.CardTemplateList, error) {
-	wcl, err := widgets.NewForConfig(rc)
+type CardTemplateGetAllOpts struct {
+	RESTConfig *rest.Config
+	Username   string
+	AuthnNS    string
+	Namespace  string
+}
+
+func CardTemplateGetAll(ctx context.Context, opts CardTemplateGetAllOpts) (*cardtemplatev1alpha1.CardTemplateList, error) {
+	wcl, err := widgets.NewForConfig(opts.RESTConfig)
 	if err != nil {
 		return nil, err
 	}
 
-	all, err := wcl.CardTemplates(ns).List(ctx, metav1.ListOptions{})
+	all, err := wcl.CardTemplates(opts.Namespace).
+		List(ctx, metav1.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 	all.APIVersion = cardtemplatev1alpha1.CardTemplateGroupVersionKind.GroupVersion().String()
 	all.Kind = "CardTemplateList"
 
-	if !eval {
-		return all, nil
-	}
-
 	for i := range all.Items {
-		if err := cardTemplateEval(ctx, rc, &all.Items[i]); err != nil {
+		err := cardTemplateEval(ctx, &all.Items[i], cardTemplateEvalOpts{
+			rc: opts.RESTConfig, username: opts.Username, authnNS: opts.AuthnNS,
+		})
+		if err != nil {
 			return all, err
 		}
 	}
@@ -38,30 +47,49 @@ func CardTemplateGetAll(ctx context.Context, rc *rest.Config, ns string, eval bo
 	return all, nil
 }
 
-func CardTemplateGetOne(ctx context.Context, rc *rest.Config, ref *core.Reference, eval bool) (*cardtemplatev1alpha1.CardTemplate, error) {
-	wcl, err := widgets.NewForConfig(rc)
+type CardTemplateGetOneOpts struct {
+	RESTConfig *rest.Config
+	Username   string
+	AuthnNS    string
+}
+
+func CardTemplateGetOne(ctx context.Context, ref *core.Reference, opts CardTemplateGetOneOpts) (*cardtemplatev1alpha1.CardTemplate, error) {
+	wcl, err := widgets.NewForConfig(opts.RESTConfig)
 	if err != nil {
 		return nil, err
 	}
-	res, err := wcl.CardTemplates(ref.Namespace).Get(ctx, ref.Name, metav1.GetOptions{})
+	res, err := wcl.CardTemplates(ref.Namespace).
+		Get(ctx, ref.Name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}
 	res.APIVersion = cardtemplatev1alpha1.CardTemplateGroupVersionKind.GroupVersion().String()
 	res.Kind = cardtemplatev1alpha1.CardTemplateGroupVersionKind.Kind
 
-	if !eval {
-		return res, nil
-	}
-
-	err = cardTemplateEval(ctx, rc, res)
+	err = cardTemplateEval(ctx, res, cardTemplateEvalOpts{
+		rc: opts.RESTConfig, authnNS: opts.AuthnNS, username: opts.Username,
+	})
 	return res, err
 }
 
-func cardTemplateEval(ctx context.Context, rc *rest.Config, in *cardtemplatev1alpha1.CardTemplate) error {
+type cardTemplateEvalOpts struct {
+	rc       *rest.Config
+	authnNS  string
+	username string
+}
+
+func cardTemplateEval(ctx context.Context, in *cardtemplatev1alpha1.CardTemplate, opts cardTemplateEvalOpts) error {
 	ds := map[string]any{}
 	for _, x := range in.Spec.APIList {
-		ep, err := EndpointGetOne(context.TODO(), rc, x.EndpointRef)
+		ref := x.EndpointRef
+		if ptr.Deref(x.KrateoGateway, false) {
+			ref = &core.Reference{
+				Name:      fmt.Sprintf("%s-kubeconfig", opts.username),
+				Namespace: opts.authnNS,
+			}
+		}
+
+		ep, err := EndpointGetOne(context.TODO(), opts.rc, ref)
 		if err != nil {
 			return err
 		}

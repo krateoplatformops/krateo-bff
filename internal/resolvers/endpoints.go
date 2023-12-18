@@ -22,8 +22,8 @@ func EndpointGetOne(ctx context.Context, rc *rest.Config, ref *core.Reference) (
 	}
 
 	res := &core.Endpoint{}
-	if v, ok := sec.Data["server"]; ok {
-		res.Server = string(v)
+	if v, ok := sec.Data["server-url"]; ok {
+		res.ServerURL = string(v)
 	} else {
 		return res, fmt.Errorf("missed required attribute for endpoint: server")
 	}

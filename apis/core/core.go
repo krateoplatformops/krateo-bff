@@ -3,7 +3,7 @@ package core
 // Endpoint contains information that describes identity information.
 // +k8s:deepcopy-gen=true
 type Endpoint struct {
-	Server string `json:"server"`
+	ServerURL string `json:"server-url"`
 
 	// +optional
 	ProxyURL string `json:"proxy-url,omitempty"`
@@ -73,4 +73,8 @@ type API struct {
 	// +optional
 	// +kubebuilder:default=true
 	Enabled *bool `json:"enabled,omitempty"`
+
+	// +optional
+	// +kubebuilder:default=false
+	KrateoGateway *bool `json:"krateoGateway,omitempty"`
 }

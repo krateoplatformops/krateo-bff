@@ -20,7 +20,7 @@ type CallOptions struct {
 }
 
 func Call(ctx context.Context, client *http.Client, opts CallOptions) (map[string]any, error) {
-	uri := strings.TrimSuffix(opts.Endpoint.Server, "/")
+	uri := strings.TrimSuffix(opts.Endpoint.ServerURL, "/")
 	if pt := ptr.Deref(opts.API.Path, ""); len(pt) > 0 {
 		uri = fmt.Sprintf("%s/%s", uri, strings.TrimPrefix(pt, "/"))
 	}

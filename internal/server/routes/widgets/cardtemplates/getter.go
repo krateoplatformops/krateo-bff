@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -27,8 +26,8 @@ const (
 	getterPath = "/apis/widgets.ui.krateo.io/v1alpha1/cardtemplates/{name}"
 )
 
-func newGetter(rc *rest.Config) (string, http.HandlerFunc) {
-	handler := &getter{rc: rc}
+func newGetter(rc *rest.Config, authnNS string) (string, http.HandlerFunc) {
+	handler := &getter{rc: rc, authnNS: authnNS}
 	return getterPath, func(wri http.ResponseWriter, req *http.Request) {
 		handler.ServeHTTP(wri, req)
 	}
@@ -37,7 +36,8 @@ func newGetter(rc *rest.Config) (string, http.HandlerFunc) {
 var _ http.Handler = (*getter)(nil)
 
 type getter struct {
-	rc *rest.Config
+	rc      *rest.Config
+	authnNS string
 }
 
 func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
@@ -50,13 +50,6 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 	namespace := qs.Get("namespace")
 	sub := qs.Get("sub")
 	orgs := strings.Split(qs.Get("orgs"), ",")
-	eval := true
-	if qs.Has("eval") {
-		ok, err := strconv.ParseBool(qs.Get("eval"))
-		if err == nil {
-			eval = ok
-		}
-	}
 
 	ok, err := rbacutil.CanListResource(context.TODO(), r.rc, rbacutil.ResourceInfo{
 		Subject: sub,
@@ -73,7 +66,6 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 			Strs("orgs", orgs).
 			Str("name", name).
 			Str("namespace", namespace).
-			Bool("eval", eval).
 			Msg("checking if 'get' verb is allowed")
 		encode.Invalid(wri, err)
 		return
@@ -90,12 +82,14 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		Strs("orgs", orgs).
 		Str("name", name).
 		Str("namespace", namespace).
-		Bool("eval", eval).
 		Msg("resolving card template")
 
-	el, err := resolvers.CardTemplateGetOne(context.Background(), r.rc, &core.Reference{
-		Name: name, Namespace: namespace,
-	}, eval)
+	el, err := resolvers.CardTemplateGetOne(context.Background(),
+		&core.Reference{
+			Name: name, Namespace: namespace,
+		}, resolvers.CardTemplateGetOneOpts{
+			RESTConfig: r.rc, AuthnNS: r.authnNS, Username: sub,
+		})
 	if err != nil {
 		log.Err(err).
 			Str("sub", sub).

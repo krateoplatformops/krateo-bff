@@ -11,7 +11,7 @@ metadata:
   name: httpbin-endpoint
   namespace: dev-system
 stringData:
-  server: http://httpbin.org
+  server-url: http://httpbin.org
   username: tik
   password: tok
 ---

@@ -22,7 +22,7 @@ package v1alpha1
 
 import (
 	"github.com/krateoplatformops/krateo-bff/apis/core"
-	cardtemplatev1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplate/v1alpha1"
+	cardtemplatesv1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplates/v1alpha1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -139,7 +139,7 @@ func (in *Content) DeepCopyInto(out *Content) {
 	*out = *in
 	if in.CardTemplateList != nil {
 		in, out := &in.CardTemplateList, &out.CardTemplateList
-		*out = make([]cardtemplatev1alpha1.CardTemplate, len(*in))
+		*out = make([]cardtemplatesv1alpha1.CardTemplate, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}

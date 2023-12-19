@@ -10,7 +10,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/scheme"
 )
 
-// Package type metadata.
 const (
 	Group   = "widgets.ui.krateo.io"
 	Version = "v1alpha1"

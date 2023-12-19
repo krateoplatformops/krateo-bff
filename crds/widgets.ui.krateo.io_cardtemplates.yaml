@@ -10,7 +10,8 @@ spec:
   names:
     categories:
     - krateo
-    - widget
+    - cards
+    - widgets
     kind: CardTemplate
     listKind: CardTemplateList
     plural: cardtemplates
@@ -140,8 +141,30 @@ spec:
             required:
             - app
             type: object
-        required:
-        - spec
+          status:
+            properties:
+              allowedApi:
+                items:
+                  type: string
+                type: array
+              color:
+                type: string
+              content:
+                type: string
+              date:
+                type: string
+              icon:
+                type: string
+              tags:
+                type: string
+              title:
+                type: string
+            required:
+            - content
+            - title
+            type: object
         type: object
     served: true
     storage: true
+    subresources:
+      status: {}

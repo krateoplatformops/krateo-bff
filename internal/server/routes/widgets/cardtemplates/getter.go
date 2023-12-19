@@ -8,11 +8,11 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/krateoplatformops/krateo-bff/apis/core"
-	cardtemplatev1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplate/v1alpha1"
+	cardtemplatev1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplates/v1alpha1"
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac/util"
 	rbacutil "github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac/util"
-	"github.com/krateoplatformops/krateo-bff/internal/resolvers"
+	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/widgets/cardtemplates"
+	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/widgets/cardtemplates/evaluator"
 	"github.com/krateoplatformops/krateo-bff/internal/server/encode"
 	"github.com/rs/zerolog"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -27,7 +27,15 @@ const (
 )
 
 func newGetter(rc *rest.Config, authnNS string) (string, http.HandlerFunc) {
-	handler := &getter{rc: rc, authnNS: authnNS}
+	gr := cardtemplatev1alpha1.CardTemplateGroupVersionKind.GroupVersion().
+		WithResource("cardtemplates").
+		GroupResource()
+
+	handler := &getter{
+		rc:      rc,
+		gr:      gr,
+		authnNS: authnNS,
+	}
 	return getterPath, func(wri http.ResponseWriter, req *http.Request) {
 		handler.ServeHTTP(wri, req)
 	}
@@ -37,6 +45,8 @@ var _ http.Handler = (*getter)(nil)
 
 type getter struct {
 	rc      *rest.Config
+	client  *cardtemplates.Client
+	gr      schema.GroupResource
 	authnNS string
 }
 
@@ -84,12 +94,26 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		Str("namespace", namespace).
 		Msg("resolving card template")
 
-	el, err := resolvers.CardTemplateGetOne(context.Background(),
-		&core.Reference{
-			Name: name, Namespace: namespace,
-		}, resolvers.CardTemplateGetOneOpts{
-			RESTConfig: r.rc, AuthnNS: r.authnNS, Username: sub,
-		})
+	if r.client == nil {
+		cli, err := cardtemplates.NewClient(r.rc)
+		if err != nil {
+			log.Err(err).
+				Str("sub", sub).
+				Strs("orgs", orgs).
+				Str("name", name).
+				Str("namespace", namespace).
+				Msg("unable to create card template rest client")
+
+			encode.Invalid(wri, err)
+			return
+		}
+
+		r.client = cli
+	}
+
+	r.client = r.client.Namespace(namespace)
+
+	el, err := r.client.Get(context.TODO(), name)
 	if err != nil {
 		log.Err(err).
 			Str("sub", sub).
@@ -106,23 +130,33 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	err = evaluator.Eval(context.Background(), el, evaluator.EvalOptions{
+		RESTConfig: r.rc, AuthnNS: r.authnNS, Username: sub,
+	})
+	if err != nil {
+		log.Err(err).
+			Str("sub", sub).
+			Strs("orgs", orgs).
+			Str("name", name).
+			Str("namespace", namespace).
+			Str("object", el.GetName()).
+			Msg("unable to evaluate card template")
+
+		encode.Invalid(wri, err)
+		return
+	}
+
 	if el != nil {
-		gr := cardtemplatev1alpha1.CardTemplateGroupVersionKind.GroupVersion().
-			WithResource("cardtemplates").
-			GroupResource()
-		all, err := rbacutil.GetAllowedVerbs(context.TODO(), r.rc, util.ResourceInfo{
+		verbs, err := rbacutil.GetAllowedVerbs(context.TODO(), r.rc, util.ResourceInfo{
 			Subject: sub, Groups: orgs,
-			GroupResource: gr, ResourceName: el.GetName(),
+			GroupResource: r.gr, ResourceName: el.GetName(),
 			Namespace: el.GetNamespace(),
 		})
 		if err != nil {
 			log.Err(err).
-				Str("sub", sub).
-				Strs("orgs", orgs).
-				Str("gr", gr.String()).
 				Str("name", name).
 				Str("namespace", namespace).
-				Msg("unable to resolve allowed verbs for sub in orgs")
+				Msg("unable to resolve allowed verbs")
 			encode.Invalid(wri, err)
 			return
 		}
@@ -131,21 +165,26 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		if len(m) == 0 {
 			m = map[string]string{}
 		}
-		m[allowedVerbsAnnotationKey] = strings.Join(all, ",")
+		m[allowedVerbsAnnotationKey] = strings.Join(verbs, ",")
 		el.SetAnnotations(m)
 
+		el.Status.AllowedAPI = []string{}
 		for _, x := range el.Spec.App.Actions {
 			verb := strings.ToLower(ptr.Deref(x.Verb, ""))
-			x.Enabled = ptr.To(slices.Contains(all, verb))
+			if slices.Contains(verbs, verb) {
+				el.Status.AllowedAPI = append(el.Status.AllowedAPI, el.Name)
+			}
 		}
 
 		log.Debug().
-			Str("sub", sub).
-			Strs("orgs", orgs).
 			Str("name", el.GetName()).
 			Str("namespace", namespace).
-			Strs("verbs", all).
+			Strs("verbs", verbs).
 			Msg("successfully resolved allowed verbs for sub in orgs")
+
+		if _, err := r.client.UpdateStatus(context.TODO(), el); err != nil {
+			log.Err(err).Str("object", el.GetName()).Msg("unable to update object status")
+		}
 	}
 
 	wri.Header().Set("Content-Type", "application/json")

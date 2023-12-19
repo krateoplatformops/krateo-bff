@@ -2,7 +2,7 @@ package v1alpha1
 
 import (
 	"github.com/krateoplatformops/krateo-bff/apis/core"
-	"github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplate/v1alpha1"
+	"github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplates/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

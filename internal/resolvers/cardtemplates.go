@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/krateoplatformops/krateo-bff/apis/core"
-	cardtemplatev1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplate/v1alpha1"
+	cardtemplatev1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplates/v1alpha1"
 	"github.com/krateoplatformops/krateo-bff/internal/api"
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/widgets"
 	"github.com/krateoplatformops/krateo-bff/internal/tmpl"

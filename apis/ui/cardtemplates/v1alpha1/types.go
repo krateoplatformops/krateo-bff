@@ -21,6 +21,10 @@ type CardInfo struct {
 
 	// +optional
 	Tags string `json:"tags,omitempty"`
+}
+
+type AppInfo struct {
+	CardInfo `json:",inline"`
 
 	// +optional
 	Actions []*core.API `json:"actions,omitempty"`
@@ -29,22 +33,31 @@ type CardInfo struct {
 // CardTemplate is a template for a Krateo UI Card widget.
 type CardTemplateSpec struct {
 	// App is the card info
-	App CardInfo `json:"app"`
+	App AppInfo `json:"app"`
 
 	// APIList list of api calls.
 	// +optional
 	APIList []*core.API `json:"api,omitempty"`
 }
 
+type CardTemplateStatus struct {
+	CardInfo `json:",inline"`
+
+	// +optional
+	AllowedAPI []string `json:"allowedApi,omitempty"`
+}
+
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:scope=Namespaced,categories={krateo,widget}
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Namespaced,categories={krateo,cards,widgets}
 
 // CardTemplate is ui widgets card configuration.
 type CardTemplate struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec CardTemplateSpec `json:"spec"`
+	Spec   CardTemplateSpec   `json:"spec,omitempty"`
+	Status CardTemplateStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true

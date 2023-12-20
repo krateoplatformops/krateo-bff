@@ -50,11 +50,6 @@ func (in *API) DeepCopyInto(out *API) {
 		*out = new(Reference)
 		**out = **in
 	}
-	if in.Enabled != nil {
-		in, out := &in.Enabled, &out.Enabled
-		*out = new(bool)
-		**out = **in
-	}
 	if in.KrateoGateway != nil {
 		in, out := &in.KrateoGateway, &out.KrateoGateway
 		*out = new(bool)

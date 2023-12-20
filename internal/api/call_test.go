@@ -12,7 +12,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/krateoplatformops/krateo-bff/apis/core"
 	"github.com/krateoplatformops/krateo-bff/internal/api"
-	"github.com/krateoplatformops/krateo-bff/internal/resolvers"
+	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/endpoints"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 	"k8s.io/utils/ptr"
@@ -40,7 +40,7 @@ func TestCallNoProxy(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	authn, err := resolvers.EndpointGetOne(context.TODO(), rc, apiInfo.EndpointRef)
+	authn, err := endpoints.Resolve(context.TODO(), rc, apiInfo.EndpointRef)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,7 +80,7 @@ func TestCallProxy(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	authn, err := resolvers.EndpointGetOne(context.TODO(), rc, apiInfo.EndpointRef)
+	authn, err := endpoints.Resolve(context.TODO(), rc, apiInfo.EndpointRef)
 	if err != nil {
 		t.Fatal(err)
 	}

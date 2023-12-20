@@ -11,8 +11,8 @@ import (
 	"testing"
 
 	"github.com/krateoplatformops/krateo-bff/internal/api"
+	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/endpoints"
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/widgets/cardtemplates"
-	"github.com/krateoplatformops/krateo-bff/internal/resolvers"
 	"github.com/krateoplatformops/krateo-bff/internal/tmpl"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
@@ -88,7 +88,7 @@ func TestCardTemplateUpdateStatus(t *testing.T) {
 
 	ds := map[string]any{}
 	for _, x := range res.Spec.APIList {
-		ep, err := resolvers.EndpointGetOne(context.TODO(), cfg, x.EndpointRef)
+		ep, err := endpoints.Resolve(context.TODO(), cfg, x.EndpointRef)
 		if err != nil {
 			t.Fatal(err)
 		}

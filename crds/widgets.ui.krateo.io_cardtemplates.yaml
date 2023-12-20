@@ -43,9 +43,6 @@ spec:
                 items:
                   description: API contains external api call info.
                   properties:
-                    enabled:
-                      default: true
-                      type: boolean
                     endpointRef:
                       description: A Reference to a named object.
                       properties:
@@ -64,7 +61,6 @@ spec:
                         type: string
                       type: array
                     krateoGateway:
-                      default: false
                       type: boolean
                     name:
                       type: string
@@ -86,9 +82,6 @@ spec:
                     items:
                       description: API contains external api call info.
                       properties:
-                        enabled:
-                          default: true
-                          type: boolean
                         endpointRef:
                           description: A Reference to a named object.
                           properties:
@@ -107,7 +100,6 @@ spec:
                             type: string
                           type: array
                         krateoGateway:
-                          default: false
                           type: boolean
                         name:
                           type: string
@@ -143,7 +135,7 @@ spec:
             type: object
           status:
             properties:
-              allowedApi:
+              allowedActions:
                 items:
                   type: string
                 type: array

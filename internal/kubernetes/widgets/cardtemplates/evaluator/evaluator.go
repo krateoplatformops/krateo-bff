@@ -7,7 +7,7 @@ import (
 	"github.com/krateoplatformops/krateo-bff/apis/core"
 	"github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplates/v1alpha1"
 	"github.com/krateoplatformops/krateo-bff/internal/api"
-	"github.com/krateoplatformops/krateo-bff/internal/resolvers"
+	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/endpoints"
 	"github.com/krateoplatformops/krateo-bff/internal/tmpl"
 	"k8s.io/client-go/rest"
 	"k8s.io/utils/ptr"
@@ -30,7 +30,7 @@ func Eval(ctx context.Context, in *v1alpha1.CardTemplate, opts EvalOptions) erro
 			}
 		}
 
-		ep, err := resolvers.EndpointGetOne(context.TODO(), opts.RESTConfig, ref)
+		ep, err := endpoints.Resolve(context.TODO(), opts.RESTConfig, ref)
 		if err != nil {
 			return err
 		}

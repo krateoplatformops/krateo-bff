@@ -1,4 +1,4 @@
-package resolvers
+package endpoints
 
 import (
 	"context"
@@ -6,17 +6,19 @@ import (
 	"strconv"
 
 	"github.com/krateoplatformops/krateo-bff/apis/core"
-	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/builtins"
+	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/secrets"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 )
 
-func EndpointGetOne(ctx context.Context, rc *rest.Config, ref *core.Reference) (*core.Endpoint, error) {
-	bcl, err := builtins.NewForConfig(rc)
+func Resolve(ctx context.Context, rc *rest.Config, ref *core.Reference) (*core.Endpoint, error) {
+	//bcl, err := builtins.NewForConfig(rc)
+	cli, err := secrets.NewClient(rc)
 	if err != nil {
 		return nil, err
 	}
-	sec, err := bcl.Secrets(ref.Namespace).Get(ctx, ref.Name, metav1.GetOptions{})
+
+	sec, err := cli.Namespace(ref.Namespace).Get(ctx, ref.Name, metav1.GetOptions{})
 	if err != nil {
 		return nil, err
 	}

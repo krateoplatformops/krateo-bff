@@ -70,7 +70,7 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 			Strs("orgs", orgs).
 			Str("namespace", namespace).
 			Msg("checking if 'get' verb is allowed")
-		encode.Invalid(wri, err)
+		encode.InternalError(wri, err)
 		return
 	}
 
@@ -98,16 +98,14 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 				Str("namespace", namespace).
 				Msg("unable to create card template rest client")
 
-			encode.Invalid(wri, err)
+			encode.InternalError(wri, err)
 			return
 		}
 
 		r.client = cli
 	}
 
-	r.client = r.client.Namespace(namespace)
-
-	all, err := r.client.List(context.TODO(), metav1.ListOptions{})
+	all, err := r.client.Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
 		log.Err(err).
 			Str("sub", sub).
@@ -124,11 +122,12 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 	}
 
 	for _, el := range all.Items {
-		err = evaluator.Eval(context.Background(), &el, evaluator.EvalOptions{
+		obj := &el
+		err = evaluator.Eval(context.Background(), obj, evaluator.EvalOptions{
 			RESTConfig: r.rc, AuthnNS: r.authnNS, Username: sub,
 		})
 		if err != nil {
-			log.Err(err).Str("object", el.GetName()).
+			log.Err(err).Str("object", obj.GetName()).
 				Msg("unable to evaluate card template")
 
 			encode.Invalid(wri, err)
@@ -137,35 +136,38 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 
 		verbs, err := rbacutil.GetAllowedVerbs(context.TODO(), r.rc, util.ResourceInfo{
 			Subject: sub, Groups: orgs,
-			GroupResource: r.gr, ResourceName: el.GetName(),
-			Namespace: el.GetNamespace(),
+			GroupResource: r.gr, ResourceName: obj.GetName(),
+			Namespace: obj.GetNamespace(),
 		})
 		if err != nil {
 			log.Err(err).
-				Str("name", el.GetName()).
+				Str("name", obj.GetName()).
 				Str("namespace", namespace).
 				Msg("unable to resolve allowed verbs")
 			encode.Invalid(wri, err)
 			return
 		}
 
-		m := el.GetAnnotations()
+		m := obj.GetAnnotations()
 		if len(m) == 0 {
 			m = map[string]string{}
 		}
 		m[allowedVerbsAnnotationKey] = strings.Join(verbs, ",")
-		el.SetAnnotations(m)
+		obj.SetAnnotations(m)
 
-		el.Status.AllowedAPI = []string{}
-		for _, x := range el.Spec.App.Actions {
+		obj.Status.AllowedActions = []string{}
+		for _, x := range obj.Spec.App.Actions {
 			verb := strings.ToLower(ptr.Deref(x.Verb, ""))
+
 			if slices.Contains(verbs, verb) {
-				el.Status.AllowedAPI = append(el.Status.AllowedAPI, el.Name)
+				obj.Status.AllowedActions = append(obj.Status.AllowedActions, x.Name)
 			}
 		}
 
-		if _, err := r.client.UpdateStatus(context.TODO(), &el); err != nil {
-			log.Err(err).Str("object", el.GetName()).Msg("unable to update object status")
+		obj, err = r.client.Namespace(obj.Namespace).
+			UpdateStatus(context.TODO(), obj)
+		if err != nil {
+			log.Err(err).Str("object", obj.GetName()).Msg("unable to update object status")
 		}
 	}
 

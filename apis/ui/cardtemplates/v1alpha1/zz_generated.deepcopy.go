@@ -157,8 +157,8 @@ func (in *CardTemplateSpec) DeepCopy() *CardTemplateSpec {
 func (in *CardTemplateStatus) DeepCopyInto(out *CardTemplateStatus) {
 	*out = *in
 	out.CardInfo = in.CardInfo
-	if in.AllowedAPI != nil {
-		in, out := &in.AllowedAPI, &out.AllowedAPI
+	if in.AllowedActions != nil {
+		in, out := &in.AllowedActions, &out.AllowedActions
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}

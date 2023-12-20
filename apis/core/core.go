@@ -71,10 +71,8 @@ type API struct {
 	EndpointRef *Reference `json:"endpointRef,omitempty"`
 
 	// +optional
-	// +kubebuilder:default=true
-	Enabled *bool `json:"enabled,omitempty"`
+	//Enabled *bool `json:"enabled,omitempty"`
 
 	// +optional
-	// +kubebuilder:default=false
 	KrateoGateway *bool `json:"krateoGateway,omitempty"`
 }

@@ -44,7 +44,7 @@ type CardTemplateStatus struct {
 	CardInfo `json:",inline"`
 
 	// +optional
-	AllowedAPI []string `json:"allowedApi,omitempty"`
+	AllowedActions []string `json:"allowedActions,omitempty"`
 }
 
 // +kubebuilder:object:root=true

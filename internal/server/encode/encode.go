@@ -23,6 +23,10 @@ func Invalid(w http.ResponseWriter, err error) error {
 	return Error(w, StatusReasonInvalid, 422, err)
 }
 
+func InternalError(w http.ResponseWriter, err error) error {
+	return Error(w, StatusReasonInternalError, 500, err)
+}
+
 func BadRequest(w http.ResponseWriter, err error) error {
 	return Error(w, StatusReasonBadRequest, 400, err)
 }

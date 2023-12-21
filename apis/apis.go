@@ -1,8 +1,8 @@
 package apis
 
 import (
-	cardtemplatev1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplates/v1alpha1"
-	columnv1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/column/v1alpha1"
+	cardtemplatesv1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplates/v1alpha1"
+	columnsv1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/columns/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -16,7 +16,7 @@ func AddToScheme(s *runtime.Scheme) error {
 
 func init() {
 	AddToSchemes = append(AddToSchemes,
-		cardtemplatev1alpha1.SchemeBuilder.AddToScheme,
-		columnv1alpha1.SchemeBuilder.AddToScheme,
+		cardtemplatesv1alpha1.SchemeBuilder.AddToScheme,
+		columnsv1alpha1.SchemeBuilder.AddToScheme,
 	)
 }

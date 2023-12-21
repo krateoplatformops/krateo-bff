@@ -20,8 +20,8 @@ import (
 )
 
 const (
-	namespace = "dev-system"
-	name      = "card-dev"
+	namespace = "demo-system"
+	name      = "sample"
 )
 
 func TestCardTemplateGet(t *testing.T) {

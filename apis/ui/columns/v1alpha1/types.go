@@ -1,6 +1,8 @@
 package v1alpha1
 
 import (
+	"encoding/json"
+
 	"github.com/krateoplatformops/krateo-bff/apis/core"
 	"github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplates/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -11,7 +13,7 @@ type Content struct {
 }
 
 type App struct {
-	Content Content `json:"content"`
+	//Content Content `json:"content"`
 
 	// +optional
 	Props map[string]string `json:"props,omitempty"`
@@ -27,13 +29,15 @@ type ColumnSpec struct {
 }
 
 // +kubebuilder:object:root=true
-// +kubebuilder:resource:scope=Namespaced,categories={krateo,layout}
+// +kubebuilder:subresource:status
+// +kubebuilder:resource:scope=Namespaced,categories={krateo,layout,column}
 
 type Column struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec ColumnSpec `json:"spec"`
+	Spec   ColumnSpec      `json:"spec"`
+	Status json.RawMessage `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true

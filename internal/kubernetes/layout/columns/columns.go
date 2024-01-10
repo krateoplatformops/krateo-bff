@@ -128,6 +128,21 @@ func (c *Client) Update(ctx context.Context, obj *v1alpha1.Column, opts metav1.U
 	return
 }
 
+func (c *Client) UpdateStatus(ctx context.Context, obj *v1alpha1.Column) (result *v1alpha1.Column, err error) {
+	result = &v1alpha1.Column{}
+	err = c.rc.Put().
+		Namespace(c.ns).
+		Resource(resourceName).
+		Name(obj.Name).
+		SubResource("status").
+		Body(obj).
+		Do(ctx).
+		Into(result)
+	// issue: https://github.com/kubernetes/client-go/issues/541
+	result.SetGroupVersionKind(v1alpha1.ColumnGroupVersionKind)
+	return
+}
+
 func (c *Client) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
 	return c.rc.Delete().
 		Namespace(c.ns).

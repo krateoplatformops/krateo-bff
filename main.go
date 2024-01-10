@@ -16,6 +16,7 @@ import (
 	"github.com/krateoplatformops/krateo-bff/internal/env"
 	"github.com/krateoplatformops/krateo-bff/internal/server/routes"
 	"github.com/krateoplatformops/krateo-bff/internal/server/routes/health"
+	"github.com/krateoplatformops/krateo-bff/internal/server/routes/layout/columns"
 	"github.com/krateoplatformops/krateo-bff/internal/server/routes/verbs"
 	"github.com/krateoplatformops/krateo-bff/internal/server/routes/widgets/cardtemplates"
 	"github.com/rs/zerolog"
@@ -66,7 +67,7 @@ func main() {
 			Str("build", Build).
 			Str("debug", fmt.Sprintf("%t", *debug)).
 			Str("port", fmt.Sprintf("%d", *port)).
-			Str("authn-namespace", fmt.Sprintf("%d", *authnNS)).
+			Str("authn-namespace", fmt.Sprintf("%s", *authnNS)).
 			Msg("configuration and build infos")
 	}
 
@@ -93,6 +94,7 @@ func main() {
 		Healty: &healthy, Version: Version, Build: Build, ServiceName: serviceName,
 	})
 	cardtemplates.Register(r, cfg, *authnNS)
+	columns.Register(r, cfg, *authnNS)
 	verbs.Register(r, cfg)
 
 	server := &http.Server{

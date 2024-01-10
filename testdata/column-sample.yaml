@@ -4,31 +4,17 @@ kind: Namespace
 metadata:
   name: dev-system
 ---
-apiVersion: v1
-kind: Secret
-type: Opaque
-metadata:
-  name: httpbin-endpoint
-  namespace: dev-system
-stringData:
-  server: http://httpbin.org
-  username: tik
-  password: tok
----
 apiVersion: layout.ui.krateo.io/v1alpha1
 kind: Column
 metadata:
-  name: column-dev
+  name: sample
   namespace: dev-system
 spec:
   app:
     props:
       width: "12"
-    content:
-      cardTemplatelist:
   api:
   - name: cardTemplatelist
-    path: "/apis/widgets.ui.krateo.io/v1alpha1/cardtemplates?namespace=dev-system"
-    endpointRef:
-      name: krateogateway-endpoint
-      namespace: krateo-system
+    path: "/apis/widgets.ui.krateo.io/v1alpha1/namespaces/dev-system/cardtemplates"
+    krateoGateway: true
+

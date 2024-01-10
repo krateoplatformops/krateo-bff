@@ -11,6 +11,7 @@ spec:
     categories:
     - krateo
     - layout
+    - column
     kind: Column
     listKind: ColumnList
     plural: columns
@@ -75,169 +76,24 @@ spec:
               app:
                 description: App is the column content
                 properties:
-                  content:
-                    properties:
-                      cardTemplateList:
-                        items:
-                          description: CardTemplate is ui widgets card configuration.
-                          properties:
-                            apiVersion:
-                              description: 'APIVersion defines the versioned schema
-                                of this representation of an object. Servers should
-                                convert recognized schemas to the latest internal
-                                value, and may reject unrecognized values. More info:
-                                https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
-                              type: string
-                            kind:
-                              description: 'Kind is a string value representing the
-                                REST resource this object represents. Servers may
-                                infer this from the endpoint the client submits requests
-                                to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
-                              type: string
-                            metadata:
-                              type: object
-                            spec:
-                              description: CardTemplate is a template for a Krateo
-                                UI Card widget.
-                              properties:
-                                api:
-                                  description: APIList list of api calls.
-                                  items:
-                                    description: API contains external api call info.
-                                    properties:
-                                      endpointRef:
-                                        description: A Reference to a named object.
-                                        properties:
-                                          name:
-                                            description: Name of the referenced object.
-                                            type: string
-                                          namespace:
-                                            description: Namespace of the referenced
-                                              object.
-                                            type: string
-                                        required:
-                                        - name
-                                        - namespace
-                                        type: object
-                                      headers:
-                                        items:
-                                          type: string
-                                        type: array
-                                      krateoGateway:
-                                        type: boolean
-                                      name:
-                                        type: string
-                                      path:
-                                        type: string
-                                      payload:
-                                        type: string
-                                      verb:
-                                        default: GET
-                                        type: string
-                                    required:
-                                    - name
-                                    type: object
-                                  type: array
-                                app:
-                                  description: App is the card info
-                                  properties:
-                                    actions:
-                                      items:
-                                        description: API contains external api call
-                                          info.
-                                        properties:
-                                          endpointRef:
-                                            description: A Reference to a named object.
-                                            properties:
-                                              name:
-                                                description: Name of the referenced
-                                                  object.
-                                                type: string
-                                              namespace:
-                                                description: Namespace of the referenced
-                                                  object.
-                                                type: string
-                                            required:
-                                            - name
-                                            - namespace
-                                            type: object
-                                          headers:
-                                            items:
-                                              type: string
-                                            type: array
-                                          krateoGateway:
-                                            type: boolean
-                                          name:
-                                            type: string
-                                          path:
-                                            type: string
-                                          payload:
-                                            type: string
-                                          verb:
-                                            default: GET
-                                            type: string
-                                        required:
-                                        - name
-                                        type: object
-                                      type: array
-                                    color:
-                                      type: string
-                                    content:
-                                      type: string
-                                    date:
-                                      type: string
-                                    icon:
-                                      type: string
-                                    tags:
-                                      type: string
-                                    title:
-                                      type: string
-                                  required:
-                                  - content
-                                  - title
-                                  type: object
-                              required:
-                              - app
-                              type: object
-                            status:
-                              properties:
-                                allowedActions:
-                                  items:
-                                    type: string
-                                  type: array
-                                color:
-                                  type: string
-                                content:
-                                  type: string
-                                date:
-                                  type: string
-                                icon:
-                                  type: string
-                                tags:
-                                  type: string
-                                title:
-                                  type: string
-                              required:
-                              - content
-                              - title
-                              type: object
-                          type: object
-                        type: array
-                    required:
-                    - cardTemplateList
-                    type: object
                   props:
                     additionalProperties:
                       type: string
                     type: object
-                required:
-                - content
                 type: object
             required:
             - app
             type: object
+          status:
+            description: RawMessage is a raw encoded JSON value. It implements Marshaler
+              and Unmarshaler and can be used to delay JSON decoding or precompute
+              a JSON encoding.
+            format: byte
+            type: string
         required:
         - spec
         type: object
     served: true
     storage: true
+    subresources:
+      status: {}

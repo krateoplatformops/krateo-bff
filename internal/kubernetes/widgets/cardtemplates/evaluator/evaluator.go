@@ -25,7 +25,7 @@ func Eval(ctx context.Context, in *v1alpha1.CardTemplate, opts EvalOptions) erro
 		ref := x.EndpointRef
 		if ptr.Deref(x.KrateoGateway, false) {
 			ref = &core.Reference{
-				Name:      fmt.Sprintf("%s-kubeconfig", opts.Username),
+				Name:      fmt.Sprintf("%s-clientconfig", opts.Username),
 				Namespace: opts.AuthnNS,
 			}
 		}

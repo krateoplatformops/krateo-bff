@@ -75,4 +75,7 @@ type API struct {
 
 	// +optional
 	KrateoGateway *bool `json:"krateoGateway,omitempty"`
+
+	// +optional
+	DependOn *string `json:"dependOn,omitempty"`
 }

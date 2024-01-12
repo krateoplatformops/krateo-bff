@@ -1,17 +1,14 @@
 package evaluator
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
-	"fmt"
 
-	"github.com/krateoplatformops/krateo-bff/apis/core"
+	cardtemplatesv1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplates/v1alpha1"
 	"github.com/krateoplatformops/krateo-bff/apis/ui/columns/v1alpha1"
-	"github.com/krateoplatformops/krateo-bff/internal/api"
-	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/endpoints"
+	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/widgets/cardtemplates"
+	cardtemplatesevaluator "github.com/krateoplatformops/krateo-bff/internal/kubernetes/widgets/cardtemplates/evaluator"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
-	"k8s.io/utils/ptr"
 )
 
 type EvalOptions struct {
@@ -21,43 +18,39 @@ type EvalOptions struct {
 }
 
 func Eval(ctx context.Context, in *v1alpha1.Column, opts EvalOptions) error {
-	ds := map[string]any{}
-	for _, x := range in.Spec.APIList {
-		ref := x.EndpointRef
-		if ptr.Deref(x.KrateoGateway, false) {
-			ref = &core.Reference{
-				Name:      fmt.Sprintf("%s-kubeconfig", opts.Username),
-				Namespace: opts.AuthnNS,
-			}
-		}
+	return evalCardTemplateList(ctx, in, opts)
+}
 
-		ep, err := endpoints.Resolve(context.TODO(), opts.RESTConfig, ref)
-		if err != nil {
-			return err
-		}
+func evalCardTemplateList(ctx context.Context, in *v1alpha1.Column, opts EvalOptions) error {
+	ref := in.Spec.CardTemplateListRef
+	if ref == nil {
+		return nil
+	}
 
-		hc, err := api.HTTPClientForEndpoint(ep)
-		if err != nil {
-			return err
-		}
+	in.Status.CardTemplateList = []cardtemplatesv1alpha1.CardTemplate{}
 
-		rt, err := api.Call(ctx, hc, api.CallOptions{
-			API:      x,
-			Endpoint: ep,
+	cli, err := cardtemplates.NewClient(opts.RESTConfig)
+	if err != nil {
+		return err
+	}
+	all, err := cli.Namespace(ref.Namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	for _, el := range all.Items {
+		obj := &el
+		err := cardtemplatesevaluator.Eval(ctx, obj, cardtemplatesevaluator.EvalOptions{
+			RESTConfig: opts.RESTConfig,
+			AuthnNS:    opts.AuthnNS,
+			Username:   opts.Username,
 		})
 		if err != nil {
 			return err
 		}
 
-		ds[x.Name] = rt
+		in.Status.CardTemplateList = append(in.Status.CardTemplateList, *obj)
 	}
-
-	buf := bytes.Buffer{}
-	if err := json.NewEncoder(&buf).Encode(ds); err != nil {
-		return err
-	}
-
-	in.Status = json.RawMessage(buf.Bytes())
 
 	return nil
 }

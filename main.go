@@ -38,7 +38,9 @@ func main() {
 	kconfig := flag.String(clientcmd.RecommendedConfigPathFlag, "", "absolute path to the kubeconfig file")
 	debug := flag.Bool("debug", env.Bool("KRATEO_BFF_DEBUG", false), "dump verbose output")
 	port := flag.Int("port", env.Int("KRATEO_BFF_PORT", 8080), "port to listen on")
-	authnNS := flag.String("authn-namespace", env.String("AUTHN_NAMESPACE", ""), "krateo authn service namespace")
+	authnNS := flag.String("authn-store-namespace",
+		env.String("AUTHN_STORE_NAMESPACE", ""),
+		"krateo authn service clientconfig secrets namespace")
 
 	flag.Usage = func() {
 		fmt.Fprintln(flag.CommandLine.Output(), "Flags:")
@@ -67,7 +69,7 @@ func main() {
 			Str("build", Build).
 			Str("debug", fmt.Sprintf("%t", *debug)).
 			Str("port", fmt.Sprintf("%d", *port)).
-			Str("authn-namespace", fmt.Sprintf("%s", *authnNS)).
+			Str("authn-store-namespace", *authnNS).
 			Msg("configuration and build infos")
 	}
 

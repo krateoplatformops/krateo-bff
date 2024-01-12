@@ -1,5 +1,12 @@
 package core
 
+// A ListReference to a list of objects.
+// +k8s:deepcopy-gen=true
+type ListReference struct {
+	// Namespace of the referenced list.
+	Namespace string `json:"namespace"`
+}
+
 // A Reference to a named object.
 // +k8s:deepcopy-gen=true
 type Reference struct {

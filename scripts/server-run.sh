@@ -1,5 +1,13 @@
 #!/bin/bash
 
 export KRATEO_BFF_DEBUG=true
+export KRATEO_BFF_PORT=8080
+export AUTHN_STORE_NAMESPACE=demo-system
 
-go run main.go -debug -kubeconfig $HOME/.kube/config
+
+kubectl apply -f crds/
+kubectl apply -f testdata/ns.yaml
+kubectl apply -f testdata/cardtemplate-sample.yaml
+kubectl apply -f testdata/column-sample.yaml
+
+go run main.go -kubeconfig $HOME/.kube/config

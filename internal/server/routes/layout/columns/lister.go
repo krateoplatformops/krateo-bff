@@ -153,10 +153,26 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		m[allowedVerbsAnnotationKey] = strings.Join(verbs, ",")
 		obj.SetAnnotations(m)
 
-		obj, err = r.client.Namespace(obj.Namespace).UpdateStatus(context.TODO(), obj)
+		_, err = r.client.Namespace(obj.Namespace).UpdateStatus(context.TODO(), obj)
 		if err != nil {
 			log.Err(err).Str("object", obj.GetName()).Msg("unable to update object status")
 		}
+	}
+
+	all, err = r.client.Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		log.Err(err).
+			Str("sub", sub).
+			Strs("orgs", orgs).
+			Str("namespace", namespace).
+			Msg("unable to list columns")
+
+		if apierrors.IsNotFound(err) {
+			encode.NotFound(wri, err)
+		} else {
+			encode.Invalid(wri, err)
+		}
+		return
 	}
 
 	wri.Header().Set("Content-Type", "application/json")

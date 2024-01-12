@@ -1,20 +1,13 @@
 ---
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: dev-system
----
 apiVersion: layout.ui.krateo.io/v1alpha1
 kind: Column
 metadata:
   name: sample
-  namespace: dev-system
+  namespace: demo-system
 spec:
   app:
     props:
       width: "12"
-  api:
-  - name: cardTemplatelist
-    path: "/apis/widgets.ui.krateo.io/v1alpha1/namespaces/dev-system/cardtemplates"
-    krateoGateway: true
+  cardTemplateListRef:
+    namespace: demo-system
 

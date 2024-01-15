@@ -134,6 +134,8 @@ spec:
                 - content
                 - title
                 type: object
+              iterator:
+                type: string
             required:
             - app
             type: object
@@ -143,21 +145,26 @@ spec:
                 items:
                   type: string
                 type: array
-              color:
-                type: string
-              content:
-                type: string
-              date:
-                type: string
-              icon:
-                type: string
-              tags:
-                type: string
-              title:
-                type: string
-            required:
-            - content
-            - title
+              cards:
+                items:
+                  properties:
+                    color:
+                      type: string
+                    content:
+                      type: string
+                    date:
+                      type: string
+                    icon:
+                      type: string
+                    tags:
+                      type: string
+                    title:
+                      type: string
+                  required:
+                  - content
+                  - title
+                  type: object
+                type: array
             type: object
         type: object
     served: true

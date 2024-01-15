@@ -32,6 +32,9 @@ type AppInfo struct {
 
 // CardTemplate is a template for a Krateo UI Card widget.
 type CardTemplateSpec struct {
+	// +optional
+	Iterator *string `json:"iterator,omitempty"`
+
 	// App is the card info
 	App AppInfo `json:"app"`
 
@@ -41,7 +44,7 @@ type CardTemplateSpec struct {
 }
 
 type CardTemplateStatus struct {
-	CardInfo `json:",inline"`
+	Cards []*CardInfo `json:"cards,omitempty"`
 
 	// +optional
 	AllowedActions []string `json:"allowedActions,omitempty"`

@@ -1,5 +1,10 @@
 package core
 
+import (
+	"github.com/krateoplatformops/krateo-bff/internal/deps"
+	"k8s.io/utils/ptr"
+)
+
 // Endpoint contains information that describes identity information.
 // +k8s:deepcopy-gen=true
 type Endpoint struct {
@@ -78,4 +83,19 @@ type API struct {
 
 	// +optional
 	DependOn *string `json:"dependOn,omitempty"`
+}
+
+func SortApiByDeps(items []*API) []string {
+	g := deps.New()
+
+	for _, el := range items {
+		dep := ptr.Deref(el.DependOn, "")
+		if len(dep) == 0 {
+			continue
+		}
+
+		_ = g.DependOn(el.Name, dep)
+	}
+
+	return g.TopoSorted()
 }

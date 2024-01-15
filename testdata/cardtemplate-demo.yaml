@@ -1,0 +1,83 @@
+---
+apiVersion: v1
+kind: Secret
+type: Opaque
+metadata:
+  name: typicode-endpoint
+  namespace: demo-system
+stringData:
+  server-url: https://jsonplaceholder.typicode.com
+---
+apiVersion: widgets.ui.krateo.io/v1alpha1
+kind: CardTemplate
+metadata:
+  name: plain
+  namespace: demo-system
+spec:
+  app:
+    color: red
+    title: Lorem Ipsum
+    content: |-
+      Nulla quam lectus, venenatis at nunc nec, suscipit convallis sapien. 
+      Suspendisse id venenatis orci, a semper ante. 
+      Mauris convallis sagittis tincidunt. 
+      Aenean egestas auctor interdum.
+    tags: lorem,ipsum
+---
+apiVersion: widgets.ui.krateo.io/v1alpha1
+kind: CardTemplate
+metadata:
+  name: one
+  namespace: demo-system
+spec:
+  app:
+    title: ${ .api2.items[0] | (.name  + " -> " + .email) }
+    content: ${ .api2.items[0].body }
+  api:
+  - name: api1
+    path: "/todos/1"
+    endpointRef:
+      name: typicode-endpoint
+      namespace: demo-system
+    verb: GET
+    headers:
+    - 'Accept: application/json'
+  - name: api2
+    dependOn: api1
+    path: ${ "/todos/" + (.api1.id|tostring) +  "/comments" }
+    endpointRef:
+      name: typicode-endpoint
+      namespace: demo-system
+    verb: GET
+    headers:
+    - 'Accept: application/json'
+---
+apiVersion: widgets.ui.krateo.io/v1alpha1
+kind: CardTemplate
+metadata:
+  name: all
+  namespace: demo-system
+spec:
+  iterator: .api2.items
+  app:
+    title: ${ .name }
+    content: ${ .body }
+    tags: ${ .email }
+  api:
+  - name: api1
+    path: "/todos/1"
+    endpointRef:
+      name: typicode-endpoint
+      namespace: demo-system
+    verb: GET
+    headers:
+    - 'Accept: application/json'
+  - name: api2
+    dependOn: api1
+    path: ${ "/todos/" + (.api1.id|tostring) +  "/comments" }
+    endpointRef:
+      name: typicode-endpoint
+      namespace: demo-system
+    verb: GET
+    headers:
+    - 'Accept: application/json'

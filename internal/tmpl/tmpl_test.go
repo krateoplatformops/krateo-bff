@@ -26,6 +26,8 @@ func TestJQTemplate(t *testing.T) {
 		{`${ .location.city }`, "San Fracisco"},
 		{"hello world", "hello world"},
 		{`${ .hobbies | join(",") }`, "chess,netflix"},
+		{`${ .id }`, "1"},
+		{`${ "/todos/" + (.id|tostring) +  "/comments" }`, "/todos/1/comments"},
 	}
 
 	ds, err := dataSource()
@@ -106,7 +108,8 @@ func dataSource() (map[string]any, error) {
 		"hobbies": [
 		  "chess",
 		  "netflix"
-		]
+		],
+		"id": 1
 	  }`
 
 	res := map[string]any{}

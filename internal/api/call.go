@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -11,17 +12,28 @@ import (
 	"strings"
 
 	"github.com/krateoplatformops/krateo-bff/apis/core"
+	"github.com/krateoplatformops/krateo-bff/internal/tmpl"
 	"k8s.io/utils/ptr"
 )
 
 type CallOptions struct {
 	API      *core.API
 	Endpoint *core.Endpoint
+	Tpl      tmpl.JQTemplate
+	DS       map[string]any
 }
 
 func Call(ctx context.Context, client *http.Client, opts CallOptions) (map[string]any, error) {
 	uri := strings.TrimSuffix(opts.Endpoint.ServerURL, "/")
 	if pt := ptr.Deref(opts.API.Path, ""); len(pt) > 0 {
+		if opts.Tpl != nil && len(opts.DS) > 0 {
+			rt, err := opts.Tpl.Execute(pt, opts.DS)
+			if err != nil {
+				return nil, err
+			}
+			pt = rt
+		}
+
 		uri = fmt.Sprintf("%s/%s", uri, strings.TrimPrefix(pt, "/"))
 	}
 
@@ -80,12 +92,21 @@ func decodeResponseBody(resp *http.Response) (map[string]any, error) {
 		return nil, err
 	}
 
-	v := map[string]any{}
-	if err := json.Unmarshal(dat, &v); err != nil {
-		return nil, err
+	x := bytes.TrimSpace(dat)
+	isArray := len(x) > 0 && x[0] == '['
+	//isObject := len(x) > 0 && x[0] == '{'
+
+	if isArray {
+		v := []any{}
+		err := json.Unmarshal(dat, &v)
+		return map[string]any{
+			"items": v,
+		}, err
 	}
 
-	return v, nil
+	v := map[string]any{}
+	err = json.Unmarshal(dat, &v)
+	return v, err
 }
 
 // Determine whether the request `content-type` includes a

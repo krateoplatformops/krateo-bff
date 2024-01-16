@@ -1,3 +1,3 @@
 #!/bin/bash
 
-kubectl apply -f testdata/cardtemplate-viewer.yaml
+kubectl apply -f testdata/clusterrole-widgets-viewer.yaml

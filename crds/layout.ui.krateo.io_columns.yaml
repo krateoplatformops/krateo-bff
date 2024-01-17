@@ -11,7 +11,7 @@ spec:
     categories:
     - krateo
     - layout
-    - column
+    - columns
     kind: Column
     listKind: ColumnList
     plural: columns
@@ -46,169 +46,44 @@ spec:
                 type: object
               cardTemplateListRef:
                 description: CardTemplateListRef reference to card template list.
-                properties:
-                  namespace:
-                    description: Namespace of the referenced list.
-                    type: string
-                required:
-                - namespace
-                type: object
+                items:
+                  description: A Reference to a named object.
+                  properties:
+                    name:
+                      description: Name of the referenced object.
+                      type: string
+                    namespace:
+                      description: Namespace of the referenced object.
+                      type: string
+                  required:
+                  - name
+                  - namespace
+                  type: object
+                type: array
             required:
             - app
             type: object
           status:
             properties:
-              cardTemplateList:
-                description: CardTemplateList list of card templates.
+              cards:
+                description: Cards list of card templates.
                 items:
-                  description: CardTemplate is ui widgets card configuration.
                   properties:
-                    apiVersion:
-                      description: 'APIVersion defines the versioned schema of this
-                        representation of an object. Servers should convert recognized
-                        schemas to the latest internal value, and may reject unrecognized
-                        values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+                    color:
                       type: string
-                    kind:
-                      description: 'Kind is a string value representing the REST resource
-                        this object represents. Servers may infer this from the endpoint
-                        the client submits requests to. Cannot be updated. In CamelCase.
-                        More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+                    content:
                       type: string
-                    metadata:
-                      type: object
-                    spec:
-                      description: CardTemplate is a template for a Krateo UI Card
-                        widget.
-                      properties:
-                        api:
-                          description: APIList list of api calls.
-                          items:
-                            description: API contains external api call info.
-                            properties:
-                              dependOn:
-                                type: string
-                              endpointRef:
-                                description: A Reference to a named object.
-                                properties:
-                                  name:
-                                    description: Name of the referenced object.
-                                    type: string
-                                  namespace:
-                                    description: Namespace of the referenced object.
-                                    type: string
-                                required:
-                                - name
-                                - namespace
-                                type: object
-                              headers:
-                                items:
-                                  type: string
-                                type: array
-                              krateoGateway:
-                                type: boolean
-                              name:
-                                type: string
-                              path:
-                                type: string
-                              payload:
-                                type: string
-                              verb:
-                                default: GET
-                                type: string
-                            required:
-                            - name
-                            type: object
-                          type: array
-                        app:
-                          description: App is the card info
-                          properties:
-                            actions:
-                              items:
-                                description: API contains external api call info.
-                                properties:
-                                  dependOn:
-                                    type: string
-                                  endpointRef:
-                                    description: A Reference to a named object.
-                                    properties:
-                                      name:
-                                        description: Name of the referenced object.
-                                        type: string
-                                      namespace:
-                                        description: Namespace of the referenced object.
-                                        type: string
-                                    required:
-                                    - name
-                                    - namespace
-                                    type: object
-                                  headers:
-                                    items:
-                                      type: string
-                                    type: array
-                                  krateoGateway:
-                                    type: boolean
-                                  name:
-                                    type: string
-                                  path:
-                                    type: string
-                                  payload:
-                                    type: string
-                                  verb:
-                                    default: GET
-                                    type: string
-                                required:
-                                - name
-                                type: object
-                              type: array
-                            color:
-                              type: string
-                            content:
-                              type: string
-                            date:
-                              type: string
-                            icon:
-                              type: string
-                            tags:
-                              type: string
-                            title:
-                              type: string
-                          required:
-                          - content
-                          - title
-                          type: object
-                        iterator:
-                          type: string
-                      required:
-                      - app
-                      type: object
-                    status:
-                      properties:
-                        allowedActions:
-                          items:
-                            type: string
-                          type: array
-                        cards:
-                          items:
-                            properties:
-                              color:
-                                type: string
-                              content:
-                                type: string
-                              date:
-                                type: string
-                              icon:
-                                type: string
-                              tags:
-                                type: string
-                              title:
-                                type: string
-                            required:
-                            - content
-                            - title
-                            type: object
-                          type: array
-                      type: object
+                    date:
+                      type: string
+                    icon:
+                      type: string
+                    tags:
+                      type: string
+                    title:
+                      type: string
+                  required:
+                  - content
+                  - title
                   type: object
                 type: array
             type: object

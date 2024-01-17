@@ -21,18 +21,18 @@ type ColumnSpec struct {
 
 	// CardTemplateListRef reference to card template list.
 	// +optional
-	CardTemplateListRef *core.ListReference `json:"cardTemplateListRef,omitempty"`
+	CardTemplateListRef []*core.Reference `json:"cardTemplateListRef,omitempty"`
 }
 
 type ColumnStatus struct {
-	// CardTemplateList list of card templates.
+	// Cards list of card templates.
 	// +optional
-	CardTemplateList []v1alpha1.CardTemplate `json:"cardTemplateList,omitempty"`
+	Cards []*v1alpha1.CardInfo `json:"cards,omitempty"`
 }
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:scope=Namespaced,categories={krateo,layout,column}
+// +kubebuilder:resource:scope=Namespaced,categories={krateo,layout,columns}
 type Column struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`

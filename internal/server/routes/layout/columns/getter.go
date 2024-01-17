@@ -165,10 +165,10 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		m[allowedVerbsAnnotationKey] = strings.Join(verbs, ",")
 		obj.SetAnnotations(m)
 
-		_, err = r.client.Namespace(namespace).UpdateStatus(context.TODO(), obj)
-		if err != nil {
-			log.Err(err).Str("object", obj.GetName()).Msg("unable to update object status")
-		}
+		// _, err = r.client.Namespace(namespace).UpdateStatus(context.TODO(), obj)
+		// if err != nil {
+		// 	log.Err(err).Str("object", obj.GetName()).Msg("unable to update object status")
+		// }
 	}
 
 	wri.Header().Set("Content-Type", "application/json")

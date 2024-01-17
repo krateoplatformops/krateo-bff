@@ -7,7 +7,6 @@ import (
 	"github.com/krateoplatformops/krateo-bff/apis/ui/columns/v1alpha1"
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/widgets/cardtemplates"
 	cardtemplatesevaluator "github.com/krateoplatformops/krateo-bff/internal/kubernetes/widgets/cardtemplates/evaluator"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 )
 
@@ -18,29 +17,31 @@ type EvalOptions struct {
 }
 
 func Eval(ctx context.Context, in *v1alpha1.Column, opts EvalOptions) error {
-	return evalCardTemplateList(ctx, in, opts)
+	return evalCardTemplateRefs(ctx, in, opts)
 }
 
-func evalCardTemplateList(ctx context.Context, in *v1alpha1.Column, opts EvalOptions) error {
-	ref := in.Spec.CardTemplateListRef
-	if ref == nil {
+func evalCardTemplateRefs(ctx context.Context, in *v1alpha1.Column, opts EvalOptions) error {
+	refs := in.Spec.CardTemplateListRef
+	if refs == nil {
 		return nil
 	}
-
-	in.Status.CardTemplateList = []cardtemplatesv1alpha1.CardTemplate{}
 
 	cli, err := cardtemplates.NewClient(opts.RESTConfig)
 	if err != nil {
 		return err
 	}
-	all, err := cli.Namespace(ref.Namespace).List(context.TODO(), metav1.ListOptions{})
-	if err != nil {
-		return err
+
+	if in.Status.Cards == nil {
+		in.Status.Cards = []*cardtemplatesv1alpha1.CardInfo{}
 	}
 
-	for _, el := range all.Items {
-		obj := &el
-		err := cardtemplatesevaluator.Eval(ctx, obj, cardtemplatesevaluator.EvalOptions{
+	for _, ref := range refs {
+		obj, err := cli.Namespace(ref.Namespace).Get(ctx, ref.Name)
+		if err != nil {
+			return err
+		}
+
+		err = cardtemplatesevaluator.Eval(ctx, obj, cardtemplatesevaluator.EvalOptions{
 			RESTConfig: opts.RESTConfig,
 			AuthnNS:    opts.AuthnNS,
 			Username:   opts.Username,
@@ -49,7 +50,7 @@ func evalCardTemplateList(ctx context.Context, in *v1alpha1.Column, opts EvalOpt
 			return err
 		}
 
-		in.Status.CardTemplateList = append(in.Status.CardTemplateList, *obj)
+		in.Status.Cards = append(in.Status.Cards, obj.Status.Cards...)
 	}
 
 	return nil

@@ -9,5 +9,9 @@ spec:
     props:
       width: "12"
   cardTemplateListRef:
-    namespace: demo-system
-
+    - name: plain
+      namespace: demo-system
+    # - name: one
+    #   namespace: demo-system
+    # - name: all
+    #   namespace: demo-system

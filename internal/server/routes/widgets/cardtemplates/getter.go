@@ -179,11 +179,6 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 			Str("namespace", namespace).
 			Strs("verbs", verbs).
 			Msg("successfully resolved allowed verbs for sub in orgs")
-
-		_, err = r.client.Namespace(namespace).UpdateStatus(context.TODO(), obj)
-		if err != nil {
-			log.Err(err).Str("object", obj.GetName()).Msg("unable to update object status")
-		}
 	}
 
 	wri.Header().Set("Content-Type", "application/json")

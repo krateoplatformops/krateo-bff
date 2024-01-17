@@ -163,12 +163,6 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 				obj.Status.AllowedActions = append(obj.Status.AllowedActions, x.Name)
 			}
 		}
-
-		obj, err = r.client.Namespace(obj.Namespace).
-			UpdateStatus(context.TODO(), obj)
-		if err != nil {
-			log.Err(err).Str("object", obj.GetName()).Msg("unable to update object status")
-		}
 	}
 
 	wri.Header().Set("Content-Type", "application/json")

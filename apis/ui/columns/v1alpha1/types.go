@@ -2,13 +2,9 @@ package v1alpha1
 
 import (
 	"github.com/krateoplatformops/krateo-bff/apis/core"
-	"github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplates/v1alpha1"
+	cardtemplatesv1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplates/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
-
-type Content struct {
-	CardTemplateList []v1alpha1.CardTemplate `json:"cardTemplateList"`
-}
 
 type App struct {
 	// +optional
@@ -25,9 +21,8 @@ type ColumnSpec struct {
 }
 
 type ColumnStatus struct {
-	// Cards list of card templates.
 	// +optional
-	Cards []*v1alpha1.CardInfo `json:"cards,omitempty"`
+	Cards []*cardtemplatesv1alpha1.Card `json:"cards,omitempty"`
 }
 
 // +kubebuilder:object:root=true

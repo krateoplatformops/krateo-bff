@@ -87,7 +87,7 @@ func TestCardTemplatePlain(t *testing.T) {
 	err = evaluator.Eval(context.TODO(), res, evaluator.EvalOptions{
 		RESTConfig: cfg,
 		AuthnNS:    namespace,
-		Username:   "",
+		Subject:    "",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -119,7 +119,7 @@ func TestCardTemplateWithoutIterator(t *testing.T) {
 	err = evaluator.Eval(context.TODO(), res, evaluator.EvalOptions{
 		RESTConfig: cfg,
 		AuthnNS:    namespace,
-		Username:   "",
+		Subject:    "",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -151,7 +151,7 @@ func TestCardTemplateWithIterator(t *testing.T) {
 	err = evaluator.Eval(context.TODO(), res, evaluator.EvalOptions{
 		RESTConfig: cfg,
 		AuthnNS:    namespace,
-		Username:   "",
+		Subject:    "",
 	})
 	if err != nil {
 		t.Fatal(err)

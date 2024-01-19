@@ -11,7 +11,7 @@ spec:
   cardTemplateListRef:
     - name: plain
       namespace: demo-system
-    # - name: one
-    #   namespace: demo-system
+    - name: one
+      namespace: demo-system
     - name: all
       namespace: demo-system

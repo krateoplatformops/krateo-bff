@@ -33,6 +33,12 @@ spec:
   app:
     title: ${ .api2.items[0] | (.name  + " -> " + .email) }
     content: ${ .api2.items[0].body }
+    actions:
+    - name: view
+      endpointRef:
+        name: typicode-endpoint
+        namespace: demo-system
+      path: ${ "/todos/1/comments/" + (.api2.items[0].id|tostring) }
   api:
   - name: api1
     path: "/todos/1"
@@ -63,6 +69,12 @@ spec:
     title: ${ .name }
     content: ${ .body }
     tags: ${ .email }
+    actions:
+    - name: view
+      endpointRef:
+        name: typicode-endpoint
+        namespace: demo-system
+      path: ${ "/todos/1/comments/" + (.id|tostring) }
   api:
   - name: api1
     path: "/todos/1"

@@ -128,7 +128,7 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 	}
 
 	err = evaluator.Eval(context.Background(), obj, evaluator.EvalOptions{
-		RESTConfig: r.rc, AuthnNS: r.authnNS, Username: sub,
+		RESTConfig: r.rc, AuthnNS: r.authnNS, Subject: sub, Groups: orgs,
 	})
 	if err != nil {
 		log.Err(err).

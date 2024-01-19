@@ -2,9 +2,12 @@ package evaluator
 
 import (
 	"context"
+	"strings"
 
 	cardtemplatesv1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplates/v1alpha1"
 	"github.com/krateoplatformops/krateo-bff/apis/ui/columns/v1alpha1"
+	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac/util"
+	rbacutil "github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac/util"
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/widgets/cardtemplates"
 	cardtemplatesevaluator "github.com/krateoplatformops/krateo-bff/internal/kubernetes/widgets/cardtemplates/evaluator"
 	"k8s.io/client-go/rest"
@@ -13,7 +16,8 @@ import (
 type EvalOptions struct {
 	RESTConfig *rest.Config
 	AuthnNS    string
-	Username   string
+	Subject    string
+	Groups     []string
 }
 
 func Eval(ctx context.Context, in *v1alpha1.Column, opts EvalOptions) error {
@@ -32,7 +36,7 @@ func evalCardTemplateRefs(ctx context.Context, in *v1alpha1.Column, opts EvalOpt
 	}
 
 	if in.Status.Cards == nil {
-		in.Status.Cards = []*cardtemplatesv1alpha1.CardInfo{}
+		in.Status.Cards = []*cardtemplatesv1alpha1.Card{}
 	}
 
 	for _, ref := range refs {
@@ -44,14 +48,56 @@ func evalCardTemplateRefs(ctx context.Context, in *v1alpha1.Column, opts EvalOpt
 		err = cardtemplatesevaluator.Eval(ctx, obj, cardtemplatesevaluator.EvalOptions{
 			RESTConfig: opts.RESTConfig,
 			AuthnNS:    opts.AuthnNS,
-			Username:   opts.Username,
+			Subject:    opts.Subject,
+			Groups:     opts.Groups,
 		})
 		if err != nil {
 			return err
 		}
 
-		in.Status.Cards = append(in.Status.Cards, obj.Status.Cards...)
+		in.Status.Cards = append(in.Status.Cards, newCardListInfo(obj)...)
 	}
+
+	return nil
+}
+
+func newCardListInfo(in *cardtemplatesv1alpha1.CardTemplate) []*cardtemplatesv1alpha1.Card {
+	out := make([]*cardtemplatesv1alpha1.Card, len(in.Status.Cards))
+	copy(out, in.Status.Cards)
+	return out
+}
+
+const (
+	allowedVerbsAnnotationKey = "krateo.io/allowed-verbs"
+	resource                  = "columns"
+)
+
+type allowedVerbsInjectorOptions struct {
+	restConfig *rest.Config
+	subject    string
+	groups     []string
+}
+
+func injectAllowedVerbs(in *v1alpha1.Column, opts allowedVerbsInjectorOptions) error {
+	verbs, err := rbacutil.GetAllowedVerbs(context.TODO(), opts.restConfig, util.ResourceInfo{
+		Subject: opts.subject,
+		Groups:  opts.groups,
+		GroupResource: v1alpha1.ColumnGroupVersionKind.GroupVersion().
+			WithResource(resource).
+			GroupResource(),
+		ResourceName: in.GetName(),
+		Namespace:    in.GetNamespace(),
+	})
+	if err != nil {
+		return err
+	}
+
+	m := in.GetAnnotations()
+	if len(m) == 0 {
+		m = map[string]string{}
+	}
+	m[allowedVerbsAnnotationKey] = strings.Join(verbs, ",")
+	in.SetAnnotations(m)
 
 	return nil
 }

@@ -5,7 +5,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-type CardInfo struct {
+type Card struct {
 	Title string `json:"title"`
 
 	Content string `json:"content"`
@@ -21,13 +21,12 @@ type CardInfo struct {
 
 	// +optional
 	Tags string `json:"tags,omitempty"`
-}
-
-type AppInfo struct {
-	CardInfo `json:",inline"`
 
 	// +optional
 	Actions []*core.API `json:"actions,omitempty"`
+
+	// +optional
+	AllowedActions []string `json:"allowedActions,omitempty"`
 }
 
 // CardTemplate is a template for a Krateo UI Card widget.
@@ -35,8 +34,8 @@ type CardTemplateSpec struct {
 	// +optional
 	Iterator *string `json:"iterator,omitempty"`
 
-	// App is the card info
-	App AppInfo `json:"app"`
+	// CardTemplateInfo is the card template info
+	CardTemplateInfo Card `json:"app"`
 
 	// APIList list of api calls.
 	// +optional
@@ -44,10 +43,7 @@ type CardTemplateSpec struct {
 }
 
 type CardTemplateStatus struct {
-	Cards []*CardInfo `json:"cards,omitempty"`
-
-	// +optional
-	AllowedActions []string `json:"allowedActions,omitempty"`
+	Cards []*Card `json:"cards,omitempty"`
 }
 
 // +kubebuilder:object:root=true

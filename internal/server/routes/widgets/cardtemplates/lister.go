@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	cardtemplatev1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplates/v1alpha1"
-	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac/util"
 	rbacutil "github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac/util"
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/widgets/cardtemplates"
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/widgets/cardtemplates/evaluator"
@@ -18,8 +17,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/rest"
-	"k8s.io/utils/ptr"
-	"k8s.io/utils/strings/slices"
 )
 
 const (
@@ -124,7 +121,7 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 	for _, el := range all.Items {
 		obj := &el
 		err = evaluator.Eval(context.Background(), obj, evaluator.EvalOptions{
-			RESTConfig: r.rc, AuthnNS: r.authnNS, Username: sub,
+			RESTConfig: r.rc, AuthnNS: r.authnNS, Subject: sub, Groups: orgs,
 		})
 		if err != nil {
 			log.Err(err).Str("object", obj.GetName()).
@@ -134,35 +131,6 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 			return
 		}
 
-		verbs, err := rbacutil.GetAllowedVerbs(context.TODO(), r.rc, util.ResourceInfo{
-			Subject: sub, Groups: orgs,
-			GroupResource: r.gr, ResourceName: obj.GetName(),
-			Namespace: obj.GetNamespace(),
-		})
-		if err != nil {
-			log.Err(err).
-				Str("name", obj.GetName()).
-				Str("namespace", namespace).
-				Msg("unable to resolve allowed verbs")
-			encode.Invalid(wri, err)
-			return
-		}
-
-		m := obj.GetAnnotations()
-		if len(m) == 0 {
-			m = map[string]string{}
-		}
-		m[allowedVerbsAnnotationKey] = strings.Join(verbs, ",")
-		obj.SetAnnotations(m)
-
-		obj.Status.AllowedActions = []string{}
-		for _, x := range obj.Spec.App.Actions {
-			verb := strings.ToLower(ptr.Deref(x.Verb, ""))
-
-			if slices.Contains(verbs, verb) {
-				obj.Status.AllowedActions = append(obj.Status.AllowedActions, x.Name)
-			}
-		}
 	}
 
 	wri.Header().Set("Content-Type", "application/json")

@@ -15,6 +15,7 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/krateoplatformops/krateo-bff/internal/env"
 	"github.com/krateoplatformops/krateo-bff/internal/server/routes"
+	"github.com/krateoplatformops/krateo-bff/internal/server/routes/actions"
 	"github.com/krateoplatformops/krateo-bff/internal/server/routes/health"
 	"github.com/krateoplatformops/krateo-bff/internal/server/routes/layout/columns"
 	"github.com/krateoplatformops/krateo-bff/internal/server/routes/verbs"
@@ -98,6 +99,7 @@ func main() {
 	cardtemplates.Register(r, cfg, *authnNS)
 	columns.Register(r, cfg, *authnNS)
 	verbs.Register(r, cfg)
+	actions.Register(r, cfg, *authnNS)
 
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", *port),

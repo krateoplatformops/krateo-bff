@@ -1,0 +1,22 @@
+---
+apiVersion: layout.ui.krateo.io/v1alpha1
+kind: Row
+metadata:
+  name: two
+  namespace: demo-system
+spec:
+  columnListRef:
+    - name: plain
+      namespace: demo-system
+    - name: one
+      namespace: demo-system
+---
+apiVersion: layout.ui.krateo.io/v1alpha1
+kind: Row
+metadata:
+  name: eleven
+  namespace: demo-system
+spec:
+  columnListRef:
+    - name: eleven
+      namespace: demo-system

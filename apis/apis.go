@@ -3,6 +3,7 @@ package apis
 import (
 	cardtemplatesv1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplates/v1alpha1"
 	columnsv1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/columns/v1alpha1"
+	rowsv1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/rows/v1alpha1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -18,5 +19,6 @@ func init() {
 	AddToSchemes = append(AddToSchemes,
 		cardtemplatesv1alpha1.SchemeBuilder.AddToScheme,
 		columnsv1alpha1.SchemeBuilder.AddToScheme,
+		rowsv1alpha1.SchemeBuilder.AddToScheme,
 	)
 }

@@ -143,7 +143,7 @@ func TestCardTemplateWithIterator(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	res, err := cli.Namespace(namespace).Get(context.TODO(), "all")
+	res, err := cli.Namespace(namespace).Get(context.TODO(), "ten")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -159,6 +159,12 @@ func TestCardTemplateWithIterator(t *testing.T) {
 
 	res, err = cli.Namespace(namespace).UpdateStatus(context.TODO(), res)
 	if err != nil {
+		t.Fatal(err)
+	}
+
+	enc := json.NewEncoder(os.Stdout)
+	enc.SetIndent("", "  ")
+	if err := enc.Encode(res); err != nil {
 		t.Fatal(err)
 	}
 }

@@ -2,7 +2,7 @@
 apiVersion: layout.ui.krateo.io/v1alpha1
 kind: Column
 metadata:
-  name: sample
+  name: plain
   namespace: demo-system
 spec:
   app:
@@ -11,7 +11,44 @@ spec:
   cardTemplateListRef:
     - name: plain
       namespace: demo-system
+---
+apiVersion: layout.ui.krateo.io/v1alpha1
+kind: Column
+metadata:
+  name: one
+  namespace: demo-system
+spec:
+  app:
+    props:
+      width: "12"
+  cardTemplateListRef:
     - name: one
       namespace: demo-system
+---
+apiVersion: layout.ui.krateo.io/v1alpha1
+kind: Column
+metadata:
+  name: eleven
+  namespace: demo-system
+spec:
+  app:
+    props:
+      width: "12"
+  cardTemplateListRef:
+    - name: one
+      namespace: demo-system
+    - name: ten
+      namespace: demo-system
+---
+apiVersion: layout.ui.krateo.io/v1alpha1
+kind: Column
+metadata:
+  name: all
+  namespace: demo-system
+spec:
+  app:
+    props:
+      width: "12"
+  cardTemplateListRef:
     - name: all
       namespace: demo-system

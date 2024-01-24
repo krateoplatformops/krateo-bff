@@ -1,4 +1,4 @@
-package cardtemplates
+package rows
 
 import (
 	"context"
@@ -7,10 +7,11 @@ import (
 	"net/http"
 	"strings"
 
-	cardtemplatev1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplates/v1alpha1"
+	rowsv1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/rows/v1alpha1"
+	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/layout/rows"
+	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/layout/rows/evaluator"
+	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac/util"
 	rbacutil "github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac/util"
-	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/widgets/cardtemplates"
-	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/widgets/cardtemplates/evaluator"
 	"github.com/krateoplatformops/krateo-bff/internal/server/encode"
 	"github.com/rs/zerolog"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -20,14 +21,14 @@ import (
 )
 
 const (
-	listerPath                    = "/apis/widgets.ui.krateo.io/v1alpha1/cardtemplates"
-	forbiddenAtClusterScopeMsgFmt = "forbidden: User %q cannot list resource \"cardtemplates\" in API group \"widgets.ui.krateo.io\" at cluster scope"
-	forbiddenInNamespaceMsgFmt    = "forbidden: User %q cannot list resource \"cardtemplates\" in API group \"widgets.ui.krateo.io\" in namespace %s"
+	listerPath                        = "/apis/layout.ui.krateo.io/v1alpha1/rows"
+	forbiddenListAtClusterScopeMsgFmt = "forbidden: User %q cannot list resource \"rows\" in API group \"layout.ui.krateo.io\" at cluster scope"
+	forbiddenListInNamespaceMsgFmt    = "forbidden: User %q cannot list resource \"rows\" in API group \"layout.ui.krateo.io\" in namespace %s"
 )
 
 func newLister(rc *rest.Config, authnNS string) (string, http.HandlerFunc) {
-	gr := cardtemplatev1alpha1.CardTemplateGroupVersionKind.GroupVersion().
-		WithResource("cardtemplates").
+	gr := rowsv1alpha1.RowGroupVersionKind.GroupVersion().
+		WithResource(resources).
 		GroupResource()
 	handler := &lister{rc: rc, authnNS: authnNS, gr: gr}
 	return listerPath, func(wri http.ResponseWriter, req *http.Request) {
@@ -39,7 +40,7 @@ var _ http.Handler = (*lister)(nil)
 
 type lister struct {
 	rc      *rest.Config
-	client  *cardtemplates.Client
+	client  *rows.Client
 	gr      schema.GroupResource
 	authnNS string
 }
@@ -57,7 +58,7 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		Subject: sub,
 		Groups:  orgs,
 		GroupResource: schema.GroupResource{
-			Group: cardtemplatev1alpha1.Group, Resource: "cardtemplates",
+			Group: rowsv1alpha1.Group, Resource: resources,
 		},
 		Namespace: namespace,
 	})
@@ -73,9 +74,9 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 
 	if !ok {
 		if len(namespace) > 0 {
-			encode.Forbidden(wri, fmt.Errorf(forbiddenInNamespaceMsgFmt, sub, namespace))
+			encode.Forbidden(wri, fmt.Errorf(forbiddenListInNamespaceMsgFmt, sub, namespace))
 		} else {
-			encode.Forbidden(wri, fmt.Errorf(forbiddenAtClusterScopeMsgFmt, sub))
+			encode.Forbidden(wri, fmt.Errorf(forbiddenListAtClusterScopeMsgFmt, sub))
 		}
 		return
 	}
@@ -84,16 +85,16 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		Str("sub", sub).
 		Strs("orgs", orgs).
 		Str("namespace", namespace).
-		Msg("resolving card template list")
+		Msg("resolving row list")
 
 	if r.client == nil {
-		cli, err := cardtemplates.NewClient(r.rc)
+		cli, err := rows.NewClient(r.rc)
 		if err != nil {
 			log.Err(err).
 				Str("sub", sub).
 				Strs("orgs", orgs).
 				Str("namespace", namespace).
-				Msg("unable to create card template rest client")
+				Msg("unable to create rows rest client")
 
 			encode.InternalError(wri, err)
 			return
@@ -108,7 +109,7 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 			Str("sub", sub).
 			Strs("orgs", orgs).
 			Str("namespace", namespace).
-			Msg("unable to list card template")
+			Msg("unable to list rows")
 
 		if apierrors.IsNotFound(err) {
 			encode.NotFound(wri, err)
@@ -125,11 +126,32 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		})
 		if err != nil {
 			log.Err(err).Str("object", obj.GetName()).
-				Msg("unable to evaluate card template")
+				Msg("unable to evaluate row")
 
 			encode.Invalid(wri, err)
 			return
 		}
+
+		verbs, err := rbacutil.GetAllowedVerbs(context.TODO(), r.rc, util.ResourceInfo{
+			Subject: sub, Groups: orgs,
+			GroupResource: r.gr, ResourceName: obj.GetName(),
+			Namespace: obj.GetNamespace(),
+		})
+		if err != nil {
+			log.Err(err).
+				Str("name", obj.GetName()).
+				Str("namespace", namespace).
+				Msg("unable to resolve allowed verbs")
+			encode.Invalid(wri, err)
+			return
+		}
+
+		m := obj.GetAnnotations()
+		if len(m) == 0 {
+			m = map[string]string{}
+		}
+		m[allowedVerbsAnnotationKey] = strings.Join(verbs, ",")
+		obj.SetAnnotations(m)
 
 		all.Items[i] = *obj
 	}
@@ -140,6 +162,6 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 	enc := json.NewEncoder(wri)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(all); err != nil {
-		log.Err(err).Msg("unable to serve json encoded cardtemplates")
+		log.Err(err).Msg("unable to serve json encoded column list")
 	}
 }

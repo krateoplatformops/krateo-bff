@@ -52,3 +52,17 @@ spec:
   cardTemplateListRef:
     - name: all
       namespace: demo-system
+---
+apiVersion: layout.ui.krateo.io/v1alpha1
+kind: Column
+metadata:
+  name: three
+  namespace: demo-system
+spec:
+  app:
+    props:
+      width: "12"
+  cardTemplateListRef:
+    - name: three
+      namespace: demo-system
+---

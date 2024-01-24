@@ -129,3 +129,39 @@ spec:
     verb: GET
     headers:
     - 'Accept: application/json'
+---
+apiVersion: widgets.ui.krateo.io/v1alpha1
+kind: CardTemplate
+metadata:
+  name: three
+  namespace: demo-system
+spec:
+  iterator: .api2.items[:3]
+  app:
+    title: ${ .name }
+    content: ${ .body }
+    tags: ${ .email }
+    actions:
+    - name: view
+      endpointRef:
+        name: typicode-endpoint
+        namespace: demo-system
+      path: ${ "/todos/1/comments/" + (.id|tostring) }
+  api:
+  - name: api1
+    path: "/todos/1"
+    endpointRef:
+      name: typicode-endpoint
+      namespace: demo-system
+    verb: GET
+    headers:
+    - 'Accept: application/json'
+  - name: api2
+    dependOn: api1
+    path: ${ "/todos/" + (.api1.id|tostring) +  "/comments" }
+    endpointRef:
+      name: typicode-endpoint
+      namespace: demo-system
+    verb: GET
+    headers:
+    - 'Accept: application/json'

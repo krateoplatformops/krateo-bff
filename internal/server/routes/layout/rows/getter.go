@@ -1,4 +1,4 @@
-package columns
+package rows
 
 import (
 	"context"
@@ -7,46 +7,53 @@ import (
 	"net/http"
 	"strings"
 
-	columnsv1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/columns/v1alpha1"
-	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/layout/columns"
-	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/layout/columns/evaluator"
+	"github.com/go-chi/chi/v5"
+	rowsv1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/rows/v1alpha1"
+	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/layout/rows"
+	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/layout/rows/evaluator"
+
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac/util"
 	rbacutil "github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac/util"
 	"github.com/krateoplatformops/krateo-bff/internal/server/encode"
 	"github.com/rs/zerolog"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/rest"
 )
 
 const (
-	listerPath                        = "/apis/layout.ui.krateo.io/v1alpha1/columns"
-	forbiddenListAtClusterScopeMsgFmt = "forbidden: User %q cannot list resource \"columns\" in API group \"layout.ui.krateo.io\" at cluster scope"
-	forbiddenListInNamespaceMsgFmt    = "forbidden: User %q cannot list resource \"columns\" in API group \"layout.ui.krateo.io\" in namespace %s"
+	getterPath         = "/apis/layout.ui.krateo.io/v1alpha1/rows/{name}"
+	forbiddenGetMsgFmt = "forbidden: User %q cannot get resource %q in API group \"layout.ui.krateo.io\" in namespace %s"
 )
 
-func newLister(rc *rest.Config, authnNS string) (string, http.HandlerFunc) {
-	gr := columnsv1alpha1.ColumnGroupVersionKind.GroupVersion().
+func newGetter(rc *rest.Config, authnNS string) (string, http.HandlerFunc) {
+	gr := rowsv1alpha1.RowGroupVersionKind.GroupVersion().
 		WithResource(resources).
 		GroupResource()
-	handler := &lister{rc: rc, authnNS: authnNS, gr: gr}
-	return listerPath, func(wri http.ResponseWriter, req *http.Request) {
+
+	handler := &getter{
+		rc:      rc,
+		gr:      gr,
+		authnNS: authnNS,
+	}
+	return getterPath, func(wri http.ResponseWriter, req *http.Request) {
 		handler.ServeHTTP(wri, req)
 	}
 }
 
-var _ http.Handler = (*lister)(nil)
+var _ http.Handler = (*getter)(nil)
 
-type lister struct {
+type getter struct {
 	rc      *rest.Config
-	client  *columns.Client
+	client  *rows.Client
 	gr      schema.GroupResource
 	authnNS string
 }
 
-func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
+func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 	log := zerolog.Ctx(req.Context()).With().Logger()
+
+	name := chi.URLParam(req, "name")
 
 	qs := req.URL.Query()
 
@@ -58,14 +65,16 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		Subject: sub,
 		Groups:  orgs,
 		GroupResource: schema.GroupResource{
-			Group: columnsv1alpha1.Group, Resource: resources,
+			Group: rowsv1alpha1.Group, Resource: resources,
 		},
-		Namespace: namespace,
+		ResourceName: name,
+		Namespace:    namespace,
 	})
 	if err != nil {
 		log.Err(err).
 			Str("sub", sub).
 			Strs("orgs", orgs).
+			Str("name", name).
 			Str("namespace", namespace).
 			Msg("checking if 'get' verb is allowed")
 		encode.InternalError(wri, err)
@@ -73,28 +82,26 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 	}
 
 	if !ok {
-		if len(namespace) > 0 {
-			encode.Forbidden(wri, fmt.Errorf(forbiddenListInNamespaceMsgFmt, sub, namespace))
-		} else {
-			encode.Forbidden(wri, fmt.Errorf(forbiddenListAtClusterScopeMsgFmt, sub))
-		}
+		encode.Forbidden(wri, fmt.Errorf(forbiddenGetMsgFmt, sub, name, namespace))
 		return
 	}
 
 	log.Debug().
 		Str("sub", sub).
 		Strs("orgs", orgs).
+		Str("name", name).
 		Str("namespace", namespace).
-		Msg("resolving column list")
+		Msg("resolving rows")
 
 	if r.client == nil {
-		cli, err := columns.NewClient(r.rc)
+		cli, err := rows.NewClient(r.rc)
 		if err != nil {
 			log.Err(err).
 				Str("sub", sub).
 				Strs("orgs", orgs).
+				Str("name", name).
 				Str("namespace", namespace).
-				Msg("unable to create column rest client")
+				Msg("unable to create rows rest client")
 
 			encode.InternalError(wri, err)
 			return
@@ -103,13 +110,14 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		r.client = cli
 	}
 
-	all, err := r.client.Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
+	obj, err := r.client.Namespace(namespace).Get(context.TODO(), name)
 	if err != nil {
 		log.Err(err).
 			Str("sub", sub).
 			Strs("orgs", orgs).
+			Str("name", name).
 			Str("namespace", namespace).
-			Msg("unable to list columns")
+			Msg("unable to resolve row")
 
 		if apierrors.IsNotFound(err) {
 			encode.NotFound(wri, err)
@@ -119,19 +127,23 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	for i, el := range all.Items {
-		obj := &el
-		err = evaluator.Eval(context.Background(), obj, evaluator.EvalOptions{
-			RESTConfig: r.rc, AuthnNS: r.authnNS, Subject: sub, Groups: orgs,
-		})
-		if err != nil {
-			log.Err(err).Str("object", obj.GetName()).
-				Msg("unable to evaluate column")
+	err = evaluator.Eval(context.Background(), obj, evaluator.EvalOptions{
+		RESTConfig: r.rc, AuthnNS: r.authnNS, Subject: sub, Groups: orgs,
+	})
+	if err != nil {
+		log.Err(err).
+			Str("sub", sub).
+			Strs("orgs", orgs).
+			Str("name", name).
+			Str("namespace", namespace).
+			Str("object", obj.GetName()).
+			Msg("unable to evaluate row")
 
-			encode.Invalid(wri, err)
-			return
-		}
+		encode.Invalid(wri, err)
+		return
+	}
 
+	if obj != nil {
 		verbs, err := rbacutil.GetAllowedVerbs(context.TODO(), r.rc, util.ResourceInfo{
 			Subject: sub, Groups: orgs,
 			GroupResource: r.gr, ResourceName: obj.GetName(),
@@ -139,7 +151,7 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		})
 		if err != nil {
 			log.Err(err).
-				Str("name", obj.GetName()).
+				Str("name", name).
 				Str("namespace", namespace).
 				Msg("unable to resolve allowed verbs")
 			encode.Invalid(wri, err)
@@ -152,8 +164,6 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		}
 		m[allowedVerbsAnnotationKey] = strings.Join(verbs, ",")
 		obj.SetAnnotations(m)
-
-		all.Items[i] = *obj
 	}
 
 	wri.Header().Set("Content-Type", "application/json")
@@ -161,7 +171,7 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 
 	enc := json.NewEncoder(wri)
 	enc.SetIndent("", "  ")
-	if err := enc.Encode(all); err != nil {
-		log.Err(err).Msg("unable to serve json encoded column list")
+	if err := enc.Encode(obj); err != nil {
+		log.Err(err).Msg("unable to serve json encoded row")
 	}
 }

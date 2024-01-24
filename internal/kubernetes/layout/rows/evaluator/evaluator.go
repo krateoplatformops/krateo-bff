@@ -4,7 +4,6 @@ import (
 	"context"
 	"strings"
 
-	cardtemplatesv1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplates/v1alpha1"
 	columnsv1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/columns/v1alpha1"
 	"github.com/krateoplatformops/krateo-bff/apis/ui/rows/v1alpha1"
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/layout/columns"
@@ -22,10 +21,6 @@ type EvalOptions struct {
 }
 
 func Eval(ctx context.Context, in *v1alpha1.Row, opts EvalOptions) error {
-	return evalColumnRefs(ctx, in, opts)
-}
-
-func evalColumnRefs(ctx context.Context, in *v1alpha1.Row, opts EvalOptions) error {
 	refs := in.Spec.ColumnListRef
 	if refs == nil {
 		return nil
@@ -36,11 +31,9 @@ func evalColumnRefs(ctx context.Context, in *v1alpha1.Row, opts EvalOptions) err
 		return err
 	}
 
-	if in.Status.Columns == nil {
-		in.Status.Columns = []*columnsv1alpha1.ColumnStatus{}
-	}
+	in.Status.Columns = make([]*columnsv1alpha1.ColumnStatus, len(refs))
 
-	for _, ref := range refs {
+	for i, ref := range refs {
 		obj, err := cli.Namespace(ref.Namespace).Get(ctx, ref.Name)
 		if err != nil {
 			return err
@@ -56,16 +49,10 @@ func evalColumnRefs(ctx context.Context, in *v1alpha1.Row, opts EvalOptions) err
 			return err
 		}
 
-		in.Status.Columns = append(in.Status.Columns, obj.Status.DeepCopy())
+		in.Status.Columns[i] = obj.Status.DeepCopy()
 	}
 
 	return nil
-}
-
-func newColumnListInfo(in *columnsv1alpha1.Column) []*cardtemplatesv1alpha1.Card {
-	out := make([]*cardtemplatesv1alpha1.Card, len(in.Status.Cards))
-	copy(out, in.Status.Cards)
-	return out
 }
 
 const (

@@ -20,3 +20,16 @@ spec:
   columnListRef:
     - name: eleven
       namespace: demo-system
+---
+apiVersion: layout.ui.krateo.io/v1alpha1
+kind: Row
+metadata:
+  name: four
+  namespace: demo-system
+spec:
+  columnListRef:
+    - name: three
+      namespace: demo-system
+    - name: plain
+      namespace: demo-system
+---

@@ -10,6 +10,7 @@ import (
 	rbacutil "github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac/util"
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/widgets/cardtemplates"
 	cardtemplatesevaluator "github.com/krateoplatformops/krateo-bff/internal/kubernetes/widgets/cardtemplates/evaluator"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
 )
 
@@ -35,9 +36,10 @@ func evalCardTemplateRefs(ctx context.Context, in *v1alpha1.Column, opts EvalOpt
 		return err
 	}
 
-	if in.Status.Cards == nil {
-		in.Status.Cards = []*cardtemplatesv1alpha1.Card{}
+	all := &cardtemplatesv1alpha1.CardTemplateList{
+		Items: []cardtemplatesv1alpha1.CardTemplate{},
 	}
+	//cards := []*cardtemplatesv1alpha1.CardTemplate{}
 
 	for _, ref := range refs {
 		obj, err := cli.Namespace(ref.Namespace).Get(ctx, ref.Name)
@@ -55,9 +57,12 @@ func evalCardTemplateRefs(ctx context.Context, in *v1alpha1.Column, opts EvalOpt
 			return err
 		}
 
-		in.Status.Cards = append(in.Status.Cards, newCardListInfo(obj)...)
+		all.Items = append(all.Items, *obj)
 	}
 
+	in.Status.Content = &runtime.RawExtension{
+		Object: all,
+	}
 	return nil
 }
 

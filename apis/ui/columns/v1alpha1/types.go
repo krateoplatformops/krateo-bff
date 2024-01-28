@@ -2,8 +2,8 @@ package v1alpha1
 
 import (
 	"github.com/krateoplatformops/krateo-bff/apis/core"
-	cardtemplatesv1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplates/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
 type App struct {
@@ -20,9 +20,14 @@ type ColumnSpec struct {
 	CardTemplateListRef []*core.Reference `json:"cardTemplateListRef,omitempty"`
 }
 
+// type ColumnStatus struct {
+// 	// +optional
+// 	Cards []*cardtemplatesv1alpha1.Card `json:"cards,omitempty"`
+// }
+
 type ColumnStatus struct {
-	// +optional
-	Cards []*cardtemplatesv1alpha1.Card `json:"cards,omitempty"`
+	//+kubebuilder:validation:EmbeddedResource
+	Content *runtime.RawExtension `json:"content,omitempty"`
 }
 
 // +kubebuilder:object:root=true

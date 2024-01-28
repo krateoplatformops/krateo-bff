@@ -14,6 +14,7 @@ require (
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b
 	sigs.k8s.io/controller-runtime v0.16.3
 	sigs.k8s.io/controller-tools v0.13.0
+	sigs.k8s.io/yaml v1.3.0
 )
 
 require (
@@ -50,5 +51,4 @@ require (
 	k8s.io/klog/v2 v2.100.1 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
-	sigs.k8s.io/yaml v1.3.0 // indirect
 )

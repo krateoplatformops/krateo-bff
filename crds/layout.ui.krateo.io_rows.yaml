@@ -56,14 +56,9 @@ spec:
           status:
             properties:
               columns:
-                items:
-                  properties:
-                    content:
-                      type: object
-                      x-kubernetes-embedded-resource: true
-                      x-kubernetes-preserve-unknown-fields: true
-                  type: object
-                type: array
+                type: object
+                x-kubernetes-embedded-resource: true
+                x-kubernetes-preserve-unknown-fields: true
             type: object
         required:
         - spec

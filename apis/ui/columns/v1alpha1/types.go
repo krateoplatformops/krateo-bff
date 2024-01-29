@@ -20,11 +20,6 @@ type ColumnSpec struct {
 	CardTemplateListRef []*core.Reference `json:"cardTemplateListRef,omitempty"`
 }
 
-// type ColumnStatus struct {
-// 	// +optional
-// 	Cards []*cardtemplatesv1alpha1.Card `json:"cards,omitempty"`
-// }
-
 type ColumnStatus struct {
 	//+kubebuilder:validation:EmbeddedResource
 	Content *runtime.RawExtension `json:"content,omitempty"`

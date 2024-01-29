@@ -10,7 +10,12 @@ import (
 	columnsevaluator "github.com/krateoplatformops/krateo-bff/internal/kubernetes/layout/columns/evaluator"
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac/util"
 	rbacutil "github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac/util"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/rest"
+)
+
+const (
+	listKind = "ColumnList"
 )
 
 type EvalOptions struct {
@@ -31,9 +36,12 @@ func Eval(ctx context.Context, in *v1alpha1.Row, opts EvalOptions) error {
 		return err
 	}
 
-	in.Status.Columns = make([]*columnsv1alpha1.ColumnStatus, len(refs))
+	all := &columnsv1alpha1.ColumnList{
+		Items: []columnsv1alpha1.Column{},
+	}
+	all.SetGroupVersionKind(columnsv1alpha1.SchemeGroupVersion.WithKind(listKind))
 
-	for i, ref := range refs {
+	for _, ref := range refs {
 		obj, err := cli.Namespace(ref.Namespace).Get(ctx, ref.Name)
 		if err != nil {
 			return err
@@ -49,7 +57,11 @@ func Eval(ctx context.Context, in *v1alpha1.Row, opts EvalOptions) error {
 			return err
 		}
 
-		in.Status.Columns[i] = obj.Status.DeepCopy()
+		all.Items = append(all.Items, *obj)
+	}
+
+	in.Status.Content = &runtime.RawExtension{
+		Object: all,
 	}
 
 	return nil

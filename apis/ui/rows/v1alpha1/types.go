@@ -2,8 +2,8 @@ package v1alpha1
 
 import (
 	"github.com/krateoplatformops/krateo-bff/apis/core"
-	columnsv1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/columns/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
 type RowSpec struct {
@@ -13,8 +13,8 @@ type RowSpec struct {
 }
 
 type RowStatus struct {
-	// +optional
-	Columns []*columnsv1alpha1.ColumnStatus `json:"columns,omitempty"`
+	//+kubebuilder:validation:EmbeddedResource
+	Content *runtime.RawExtension `json:"columns,omitempty"`
 }
 
 // +kubebuilder:object:root=true

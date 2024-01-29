@@ -14,6 +14,10 @@ import (
 	"k8s.io/client-go/rest"
 )
 
+const (
+	listKind = "CardTemplateList"
+)
+
 type EvalOptions struct {
 	RESTConfig *rest.Config
 	AuthnNS    string
@@ -39,7 +43,7 @@ func evalCardTemplateRefs(ctx context.Context, in *v1alpha1.Column, opts EvalOpt
 	all := &cardtemplatesv1alpha1.CardTemplateList{
 		Items: []cardtemplatesv1alpha1.CardTemplate{},
 	}
-	//cards := []*cardtemplatesv1alpha1.CardTemplate{}
+	all.SetGroupVersionKind(cardtemplatesv1alpha1.SchemeGroupVersion.WithKind(listKind))
 
 	for _, ref := range refs {
 		obj, err := cli.Namespace(ref.Namespace).Get(ctx, ref.Name)
@@ -64,12 +68,6 @@ func evalCardTemplateRefs(ctx context.Context, in *v1alpha1.Column, opts EvalOpt
 		Object: all,
 	}
 	return nil
-}
-
-func newCardListInfo(in *cardtemplatesv1alpha1.CardTemplate) []*cardtemplatesv1alpha1.Card {
-	out := make([]*cardtemplatesv1alpha1.Card, len(in.Status.Cards))
-	copy(out, in.Status.Cards)
-	return out
 }
 
 const (

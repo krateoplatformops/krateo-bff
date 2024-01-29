@@ -6,7 +6,6 @@ import (
 
 	"github.com/krateoplatformops/krateo-bff/apis"
 	"github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplates/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -18,6 +17,7 @@ import (
 
 const (
 	resourceName = "cardtemplates"
+	listKind     = "CardTemplateList"
 )
 
 func NewClient(rc *rest.Config) (*Client, error) {
@@ -81,7 +81,7 @@ func (c *Client) List(ctx context.Context, opts metav1.ListOptions) (result *v1a
 		Do(ctx).
 		Into(result)
 
-	result.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("List"))
+	result.SetGroupVersionKind(v1alpha1.SchemeGroupVersion.WithKind(listKind))
 	return
 }
 

@@ -55,7 +55,7 @@ spec:
             type: object
           status:
             properties:
-              columns:
+              content:
                 type: object
                 x-kubernetes-embedded-resource: true
                 x-kubernetes-preserve-unknown-fields: true

@@ -14,7 +14,7 @@ type RowSpec struct {
 
 type RowStatus struct {
 	//+kubebuilder:validation:EmbeddedResource
-	Content *runtime.RawExtension `json:"columns,omitempty"`
+	Content *runtime.RawExtension `json:"content,omitempty"`
 }
 
 // +kubebuilder:object:root=true

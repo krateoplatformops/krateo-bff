@@ -43,7 +43,7 @@ type CardTemplateSpec struct {
 }
 
 type CardTemplateStatus struct {
-	Cards []*Card `json:"cards,omitempty"`
+	Cards []*Card `json:"content,omitempty"`
 }
 
 // +kubebuilder:object:root=true

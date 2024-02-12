@@ -14,6 +14,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/krateoplatformops/krateo-bff/internal/env"
+	"github.com/krateoplatformops/krateo-bff/internal/server/middlewares/cors"
 	"github.com/krateoplatformops/krateo-bff/internal/server/routes"
 	"github.com/krateoplatformops/krateo-bff/internal/server/routes/actions"
 	"github.com/krateoplatformops/krateo-bff/internal/server/routes/health"
@@ -38,7 +39,8 @@ var (
 func main() {
 	// Flags
 	kconfig := flag.String(clientcmd.RecommendedConfigPathFlag, "", "absolute path to the kubeconfig file")
-	debug := flag.Bool("debug", env.Bool("KRATEO_BFF_DEBUG", false), "dump verbose output")
+	debugOn := flag.Bool("debug", env.Bool("KRATEO_BFF_DEBUG", false), "dump verbose output")
+	corsOn := flag.Bool("cors", env.Bool("KRATEO_BFF_CORS", true), "enable or disable CORS")
 	port := flag.Int("port", env.Int("KRATEO_BFF_PORT", 8080), "port to listen on")
 	authnNS := flag.String("authn-store-namespace",
 		env.String("AUTHN_STORE_NAMESPACE", ""),
@@ -56,7 +58,7 @@ func main() {
 
 	// Default level for this log is info, unless debug flag is present
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	if *debug {
+	if *debugOn {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	}
 
@@ -69,7 +71,8 @@ func main() {
 		log.Debug().
 			Str("version", Version).
 			Str("build", Build).
-			Str("debug", fmt.Sprintf("%t", *debug)).
+			Str("debug", fmt.Sprintf("%t", *debugOn)).
+			Str("cors", fmt.Sprintf("%t", *corsOn)).
 			Str("port", fmt.Sprintf("%d", *port)).
 			Str("authn-store-namespace", *authnNS).
 			Msg("configuration and build infos")
@@ -93,6 +96,17 @@ func main() {
 	r.Use(routes.Logger(log))
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.URLFormat)
+
+	if *corsOn {
+		r.Use(cors.Handler(cors.Options{
+			AllowedOrigins:   []string{"*"},
+			AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Auth-Code"},
+			ExposedHeaders:   []string{"Link"},
+			AllowCredentials: true,
+			MaxAge:           300, // Maximum value not ignored by any of major browsers
+		}))
+	}
 
 	health.Register(r, health.Options{
 		Healty: &healthy, Version: Version, Build: Build, ServiceName: serviceName,
@@ -131,7 +145,7 @@ func main() {
 	// Listen for the interrupt signal.
 	log.Info().Msgf("server is ready to handle requests at @ %s", server.Addr)
 
-	if *debug {
+	if *debugOn {
 		chi.Walk(r, func(method string, route string, handler http.Handler, _ ...func(http.Handler) http.Handler) error {
 			log.Debug().Msgf("%s %s", method, route)
 			return nil

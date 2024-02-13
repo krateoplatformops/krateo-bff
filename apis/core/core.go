@@ -88,14 +88,16 @@ type API struct {
 func SortApiByDeps(items []*API) []string {
 	g := deps.New()
 
+	nodep := []string{}
 	for _, el := range items {
 		dep := ptr.Deref(el.DependOn, "")
 		if len(dep) == 0 {
+			nodep = append(nodep, el.Name)
 			continue
 		}
-
 		_ = g.DependOn(el.Name, dep)
 	}
 
-	return g.TopoSorted()
+	all := append(nodep, g.TopoSorted()...)
+	return all
 }

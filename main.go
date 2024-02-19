@@ -40,6 +40,7 @@ func main() {
 	// Flags
 	kconfig := flag.String(clientcmd.RecommendedConfigPathFlag, "", "absolute path to the kubeconfig file")
 	debugOn := flag.Bool("debug", env.Bool("KRATEO_BFF_DEBUG", false), "dump verbose output")
+	dumpEnv := flag.Bool("dumpEnv", env.Bool("KRATEO_BFF_DUMP_ENV", false), "dump environment variables")
 	corsOn := flag.Bool("cors", env.Bool("KRATEO_BFF_CORS", true), "enable or disable CORS")
 	port := flag.Int("port", env.Int("KRATEO_BFF_PORT", 8080), "port to listen on")
 	authnNS := flag.String("authn-store-namespace",
@@ -68,14 +69,18 @@ func main() {
 		Logger()
 
 	if log.Debug().Enabled() {
-		log.Debug().
+		evt := log.Debug().
 			Str("version", Version).
 			Str("build", Build).
 			Str("debug", fmt.Sprintf("%t", *debugOn)).
 			Str("cors", fmt.Sprintf("%t", *corsOn)).
 			Str("port", fmt.Sprintf("%d", *port)).
-			Str("authn-store-namespace", *authnNS).
-			Msg("configuration and build infos")
+			Str("authn-store-namespace", *authnNS)
+		if *dumpEnv {
+			evt = evt.Strs("env-vars", os.Environ())
+		}
+
+		evt.Msg("configuration and env vars info")
 	}
 
 	var cfg *rest.Config

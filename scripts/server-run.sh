@@ -1,7 +1,8 @@
 #!/bin/bash
 
 export KRATEO_BFF_DEBUG=true
-export KRATEO_BFF_PORT=8080
+export KRATEO_BFF_DUMP_ENV=true
+export KRATEO_BFF_PORT=8090
 export AUTHN_STORE_NAMESPACE=demo-system
 
 

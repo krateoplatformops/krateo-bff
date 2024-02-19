@@ -58,3 +58,30 @@ func Duration(key string, defaultValue time.Duration) time.Duration {
 	}
 	return res
 }
+
+func ServicePort(key string, defaultValue int) int {
+	// "KRATEO_BFF_PORT=tcp://10.96.234.180:8081"
+	val, ok := os.LookupEnv(key)
+	if !ok {
+		return defaultValue
+	}
+
+	n := strings.TrimSpace(val)
+	if len(n) == 0 {
+		return defaultValue
+	}
+
+	if strings.HasPrefix(n, "tcp://") {
+		idx := strings.LastIndexByte(n, ':')
+		if idx < 0 || idx == len(n)-1 {
+			return defaultValue
+		}
+		n = n[idx+1:]
+	}
+
+	res, err := strconv.Atoi(n)
+	if err != nil {
+		return defaultValue
+	}
+	return res
+}

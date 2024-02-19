@@ -42,7 +42,7 @@ func main() {
 	debugOn := flag.Bool("debug", env.Bool("KRATEO_BFF_DEBUG", false), "dump verbose output")
 	dumpEnv := flag.Bool("dumpEnv", env.Bool("KRATEO_BFF_DUMP_ENV", false), "dump environment variables")
 	corsOn := flag.Bool("cors", env.Bool("KRATEO_BFF_CORS", true), "enable or disable CORS")
-	port := flag.Int("port", env.Int("KRATEO_BFF_PORT", 8080), "port to listen on")
+	port := flag.Int("port", env.ServicePort("KRATEO_BFF_PORT", 8080), "port to listen on")
 	authnNS := flag.String("authn-store-namespace",
 		env.String("AUTHN_STORE_NAMESPACE", ""),
 		"krateo authn service clientconfig secrets namespace")

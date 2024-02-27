@@ -1,0 +1,968 @@
+{
+  "kind": "FormTemplate",
+  "apiVersion": "widgets.ui.krateo.io/v1alpha1",
+  "metadata": {
+    "name": "fireworksapp",
+    "namespace": "demo-system",
+    "uid": "ffa368ad-ea28-4360-9fac-8fca644f0a64",
+    "resourceVersion": "4871",
+    "generation": 1,
+    "creationTimestamp": "2024-02-27T13:16:52Z",
+    "annotations": {
+      "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"widgets.ui.krateo.io/v1alpha1\",\"kind\":\"FormTemplate\",\"metadata\":{\"annotations\":{},\"name\":\"fireworksapp\",\"namespace\":\"demo-system\"},\"spec\":{\"data\":[{\"path\":\".git.replaceValues.key1\",\"value\":\"value1\"},{\"path\":\".git.replaceValues.key2\",\"value\":\"32\"},{\"path\":\".git.replaceValues.key2\",\"value\":\"false\"}],\"definitionRef\":{\"name\":\"fireworksapp\",\"namespace\":\"demo-system\"},\"resourceRef\":{\"name\":\"fireworksapp\",\"namespace\":\"demo-system\"}}}\n"
+    },
+    "managedFields": [
+      {
+        "manager": "kubectl-client-side-apply",
+        "operation": "Update",
+        "apiVersion": "widgets.ui.krateo.io/v1alpha1",
+        "time": "2024-02-27T13:16:52Z",
+        "fieldsType": "FieldsV1",
+        "fieldsV1": {
+          "f:metadata": {
+            "f:annotations": {
+              ".": {},
+              "f:kubectl.kubernetes.io/last-applied-configuration": {}
+            }
+          },
+          "f:spec": {
+            ".": {},
+            "f:data": {},
+            "f:definitionRef": {
+              ".": {},
+              "f:name": {},
+              "f:namespace": {}
+            },
+            "f:resourceRef": {
+              ".": {},
+              "f:name": {},
+              "f:namespace": {}
+            }
+          }
+        }
+      },
+      {
+        "manager": "formtemplates.test",
+        "operation": "Update",
+        "apiVersion": "widgets.ui.krateo.io/v1alpha1",
+        "time": "2024-02-27T14:17:11Z",
+        "fieldsType": "FieldsV1",
+        "fieldsV1": {
+          "f:status": {
+            ".": {},
+            "f:instance": {
+              ".": {},
+              "f:apiVersion": {},
+              "f:kind": {},
+              "f:metadata": {
+                ".": {},
+                "f:annotations": {
+                  ".": {},
+                  "f:krateo.io/connector-verbose": {},
+                  "f:kubectl.kubernetes.io/last-applied-configuration": {}
+                },
+                "f:creationTimestamp": {},
+                "f:generation": {},
+                "f:managedFields": {},
+                "f:name": {},
+                "f:namespace": {},
+                "f:resourceVersion": {},
+                "f:uid": {}
+              },
+              "f:spec": {
+                ".": {},
+                "f:argocd": {
+                  ".": {},
+                  "f:application": {
+                    ".": {},
+                    "f:destination": {
+                      ".": {},
+                      "f:namespace": {},
+                      "f:server": {}
+                    },
+                    "f:project": {},
+                    "f:source": {
+                      ".": {},
+                      "f:path": {}
+                    },
+                    "f:syncPolicy": {
+                      ".": {},
+                      "f:automated": {
+                        ".": {},
+                        "f:prune": {},
+                        "f:selfHeal": {}
+                      },
+                      "f:syncOptions": {}
+                    }
+                  },
+                  "f:namespace": {}
+                },
+                "f:git": {
+                  ".": {},
+                  "f:deletionPolicy": {},
+                  "f:deploymentServiceUrl": {},
+                  "f:fromRepo": {
+                    ".": {},
+                    "f:branch": {},
+                    "f:credentials": {
+                      ".": {},
+                      "f:authMethod": {},
+                      "f:secretRef": {
+                        ".": {},
+                        "f:key": {},
+                        "f:name": {},
+                        "f:namespace": {}
+                      }
+                    },
+                    "f:name": {},
+                    "f:org": {},
+                    "f:path": {},
+                    "f:scmUrl": {}
+                  },
+                  "f:insecure": {},
+                  "f:replaceValues": {
+                    ".": {},
+                    "f:key1": {},
+                    "f:key2": {},
+                    "f:key3": {}
+                  },
+                  "f:toRepo": {
+                    ".": {},
+                    "f:apiUrl": {},
+                    "f:branch": {},
+                    "f:credentials": {
+                      ".": {},
+                      "f:authMethod": {},
+                      "f:secretRef": {
+                        ".": {},
+                        "f:key": {},
+                        "f:name": {},
+                        "f:namespace": {}
+                      }
+                    },
+                    "f:deletionPolicy": {},
+                    "f:initialize": {},
+                    "f:name": {},
+                    "f:org": {},
+                    "f:path": {},
+                    "f:private": {},
+                    "f:scmUrl": {}
+                  },
+                  "f:unsupportedCapabilities": {}
+                }
+              }
+            },
+            "f:schema": {
+              ".": {},
+              "f:properties": {
+                ".": {},
+                "f:apiVersion": {
+                  ".": {},
+                  "f:description": {},
+                  "f:type": {}
+                },
+                "f:kind": {
+                  ".": {},
+                  "f:description": {},
+                  "f:type": {}
+                },
+                "f:spec": {
+                  ".": {},
+                  "f:properties": {
+                    ".": {},
+                    "f:argocd": {
+                      ".": {},
+                      "f:properties": {
+                        ".": {},
+                        "f:application": {
+                          ".": {},
+                          "f:properties": {
+                            ".": {},
+                            "f:destination": {
+                              ".": {},
+                              "f:properties": {
+                                ".": {},
+                                "f:namespace": {
+                                  ".": {},
+                                  "f:type": {}
+                                },
+                                "f:server": {
+                                  ".": {},
+                                  "f:type": {}
+                                }
+                              },
+                              "f:required": {},
+                              "f:type": {}
+                            },
+                            "f:project": {
+                              ".": {},
+                              "f:type": {}
+                            },
+                            "f:source": {
+                              ".": {},
+                              "f:properties": {
+                                ".": {},
+                                "f:path": {
+                                  ".": {},
+                                  "f:type": {}
+                                }
+                              },
+                              "f:required": {},
+                              "f:type": {}
+                            },
+                            "f:syncPolicy": {
+                              ".": {},
+                              "f:properties": {
+                                ".": {},
+                                "f:automated": {
+                                  ".": {},
+                                  "f:properties": {
+                                    ".": {},
+                                    "f:prune": {
+                                      ".": {},
+                                      "f:type": {}
+                                    },
+                                    "f:selfHeal": {
+                                      ".": {},
+                                      "f:type": {}
+                                    }
+                                  },
+                                  "f:required": {},
+                                  "f:type": {}
+                                },
+                                "f:syncOptions": {
+                                  ".": {},
+                                  "f:items": {
+                                    ".": {},
+                                    "f:type": {}
+                                  },
+                                  "f:type": {}
+                                }
+                              },
+                              "f:required": {},
+                              "f:type": {}
+                            }
+                          },
+                          "f:required": {},
+                          "f:type": {}
+                        },
+                        "f:namespace": {
+                          ".": {},
+                          "f:type": {}
+                        }
+                      },
+                      "f:required": {},
+                      "f:type": {}
+                    },
+                    "f:git": {
+                      ".": {},
+                      "f:properties": {
+                        ".": {},
+                        "f:deletionPolicy": {
+                          ".": {},
+                          "f:enum": {},
+                          "f:type": {}
+                        },
+                        "f:deploymentServiceUrl": {
+                          ".": {},
+                          "f:type": {}
+                        },
+                        "f:fromRepo": {
+                          ".": {},
+                          "f:properties": {
+                            ".": {},
+                            "f:branch": {
+                              ".": {},
+                              "f:type": {}
+                            },
+                            "f:credentials": {
+                              ".": {},
+                              "f:properties": {
+                                ".": {},
+                                "f:authMethod": {
+                                  ".": {},
+                                  "f:enum": {},
+                                  "f:type": {}
+                                },
+                                "f:secretRef": {
+                                  ".": {},
+                                  "f:properties": {
+                                    ".": {},
+                                    "f:key": {
+                                      ".": {},
+                                      "f:type": {}
+                                    },
+                                    "f:name": {
+                                      ".": {},
+                                      "f:type": {}
+                                    },
+                                    "f:namespace": {
+                                      ".": {},
+                                      "f:type": {}
+                                    }
+                                  },
+                                  "f:required": {},
+                                  "f:type": {}
+                                }
+                              },
+                              "f:required": {},
+                              "f:type": {}
+                            },
+                            "f:name": {
+                              ".": {},
+                              "f:type": {}
+                            },
+                            "f:org": {
+                              ".": {},
+                              "f:type": {}
+                            },
+                            "f:path": {
+                              ".": {},
+                              "f:type": {}
+                            },
+                            "f:scmUrl": {
+                              ".": {},
+                              "f:type": {}
+                            }
+                          },
+                          "f:required": {},
+                          "f:type": {}
+                        },
+                        "f:insecure": {
+                          ".": {},
+                          "f:type": {}
+                        },
+                        "f:replaceValues": {
+                          ".": {},
+                          "f:properties": {
+                            ".": {},
+                            "f:key1": {
+                              ".": {},
+                              "f:type": {}
+                            },
+                            "f:key2": {
+                              ".": {},
+                              "f:maximum": {},
+                              "f:minimum": {},
+                              "f:type": {}
+                            },
+                            "f:key3": {
+                              ".": {},
+                              "f:type": {}
+                            }
+                          },
+                          "f:required": {},
+                          "f:type": {}
+                        },
+                        "f:toRepo": {
+                          ".": {},
+                          "f:properties": {
+                            ".": {},
+                            "f:apiUrl": {
+                              ".": {},
+                              "f:type": {}
+                            },
+                            "f:branch": {
+                              ".": {},
+                              "f:type": {}
+                            },
+                            "f:credentials": {
+                              ".": {},
+                              "f:properties": {
+                                ".": {},
+                                "f:authMethod": {
+                                  ".": {},
+                                  "f:enum": {},
+                                  "f:type": {}
+                                },
+                                "f:secretRef": {
+                                  ".": {},
+                                  "f:properties": {
+                                    ".": {},
+                                    "f:key": {
+                                      ".": {},
+                                      "f:type": {}
+                                    },
+                                    "f:name": {
+                                      ".": {},
+                                      "f:type": {}
+                                    },
+                                    "f:namespace": {
+                                      ".": {},
+                                      "f:type": {}
+                                    }
+                                  },
+                                  "f:required": {},
+                                  "f:type": {}
+                                }
+                              },
+                              "f:required": {},
+                              "f:type": {}
+                            },
+                            "f:deletionPolicy": {
+                              ".": {},
+                              "f:enum": {},
+                              "f:type": {}
+                            },
+                            "f:initialize": {
+                              ".": {},
+                              "f:type": {}
+                            },
+                            "f:name": {
+                              ".": {},
+                              "f:type": {}
+                            },
+                            "f:org": {
+                              ".": {},
+                              "f:type": {}
+                            },
+                            "f:path": {
+                              ".": {},
+                              "f:type": {}
+                            },
+                            "f:private": {
+                              ".": {},
+                              "f:type": {}
+                            },
+                            "f:scmUrl": {
+                              ".": {},
+                              "f:type": {}
+                            }
+                          },
+                          "f:required": {},
+                          "f:type": {}
+                        },
+                        "f:unsupportedCapabilities": {
+                          ".": {},
+                          "f:type": {}
+                        }
+                      },
+                      "f:required": {},
+                      "f:type": {}
+                    }
+                  },
+                  "f:required": {},
+                  "f:type": {}
+                }
+              },
+              "f:type": {}
+            }
+          }
+        },
+        "subresource": "status"
+      }
+    ]
+  },
+  "spec": {
+    "definitionRef": {
+      "name": "fireworksapp",
+      "namespace": "demo-system"
+    },
+    "resourceRef": {
+      "name": "fireworksapp",
+      "namespace": "demo-system"
+    },
+    "data": [
+      {
+        "path": ".git.replaceValues.key1",
+        "value": "value1"
+      },
+      {
+        "path": ".git.replaceValues.key2",
+        "value": "32"
+      },
+      {
+        "path": ".git.replaceValues.key2",
+        "value": "false"
+      }
+    ]
+  },
+  "status": {
+    "content": {
+      "schema": {
+        "properties": {
+          "apiVersion": {
+            "description": "APIVersion defines the versioned schema of this representation of an object.\nServers should convert recognized schemas to the latest internal value, and\nmay reject unrecognized values.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources",
+            "type": "string"
+          },
+          "kind": {
+            "description": "Kind is a string value representing the REST resource this object represents.\nServers may infer this from the endpoint the client submits requests to.\nCannot be updated.\nIn CamelCase.\nMore info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds",
+            "type": "string"
+          },
+          "spec": {
+            "properties": {
+              "argocd": {
+                "properties": {
+                  "application": {
+                    "properties": {
+                      "destination": {
+                        "properties": {
+                          "namespace": {
+                            "type": "string"
+                          },
+                          "server": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "namespace",
+                          "server"
+                        ],
+                        "type": "object"
+                      },
+                      "project": {
+                        "type": "string"
+                      },
+                      "source": {
+                        "properties": {
+                          "path": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "path"
+                        ],
+                        "type": "object"
+                      },
+                      "syncPolicy": {
+                        "properties": {
+                          "automated": {
+                            "properties": {
+                              "prune": {
+                                "type": "boolean"
+                              },
+                              "selfHeal": {
+                                "type": "boolean"
+                              }
+                            },
+                            "required": [
+                              "prune",
+                              "selfHeal"
+                            ],
+                            "type": "object"
+                          },
+                          "syncOptions": {
+                            "items": {
+                              "type": "string"
+                            },
+                            "type": "array"
+                          }
+                        },
+                        "required": [
+                          "automated",
+                          "syncOptions"
+                        ],
+                        "type": "object"
+                      }
+                    },
+                    "required": [
+                      "destination",
+                      "project",
+                      "source",
+                      "syncPolicy"
+                    ],
+                    "type": "object"
+                  },
+                  "namespace": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "application",
+                  "namespace"
+                ],
+                "type": "object"
+              },
+              "git": {
+                "properties": {
+                  "deletionPolicy": {
+                    "enum": [
+                      "Delete",
+                      "Orphan"
+                    ],
+                    "type": "string"
+                  },
+                  "deploymentServiceUrl": {
+                    "type": "string"
+                  },
+                  "fromRepo": {
+                    "properties": {
+                      "branch": {
+                        "type": "string"
+                      },
+                      "credentials": {
+                        "properties": {
+                          "authMethod": {
+                            "enum": [
+                              "basic",
+                              "bearer"
+                            ],
+                            "type": "string"
+                          },
+                          "secretRef": {
+                            "properties": {
+                              "key": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "namespace": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "key",
+                              "name",
+                              "namespace"
+                            ],
+                            "type": "object"
+                          }
+                        },
+                        "required": [
+                          "authMethod",
+                          "secretRef"
+                        ],
+                        "type": "object"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "org": {
+                        "type": "string"
+                      },
+                      "path": {
+                        "type": "string"
+                      },
+                      "scmUrl": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "branch",
+                      "credentials",
+                      "name",
+                      "org",
+                      "path",
+                      "scmUrl"
+                    ],
+                    "type": "object"
+                  },
+                  "insecure": {
+                    "type": "boolean"
+                  },
+                  "replaceValues": {
+                    "properties": {
+                      "key1": {
+                        "type": "string"
+                      },
+                      "key2": {
+                        "maximum": 5,
+                        "minimum": 1,
+                        "type": "integer"
+                      },
+                      "key3": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "key1",
+                      "key2",
+                      "key3"
+                    ],
+                    "type": "object"
+                  },
+                  "toRepo": {
+                    "properties": {
+                      "apiUrl": {
+                        "type": "string"
+                      },
+                      "branch": {
+                        "type": "string"
+                      },
+                      "credentials": {
+                        "properties": {
+                          "authMethod": {
+                            "enum": [
+                              "basic",
+                              "bearer"
+                            ],
+                            "type": "string"
+                          },
+                          "secretRef": {
+                            "properties": {
+                              "key": {
+                                "type": "string"
+                              },
+                              "name": {
+                                "type": "string"
+                              },
+                              "namespace": {
+                                "type": "string"
+                              }
+                            },
+                            "required": [
+                              "key",
+                              "name",
+                              "namespace"
+                            ],
+                            "type": "object"
+                          }
+                        },
+                        "required": [
+                          "authMethod",
+                          "secretRef"
+                        ],
+                        "type": "object"
+                      },
+                      "deletionPolicy": {
+                        "enum": [
+                          "Delete",
+                          "Orphan"
+                        ],
+                        "type": "string"
+                      },
+                      "initialize": {
+                        "type": "boolean"
+                      },
+                      "name": {
+                        "type": "string"
+                      },
+                      "org": {
+                        "type": "string"
+                      },
+                      "path": {
+                        "type": "string"
+                      },
+                      "private": {
+                        "type": "boolean"
+                      },
+                      "scmUrl": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "apiUrl",
+                      "branch",
+                      "credentials",
+                      "deletionPolicy",
+                      "initialize",
+                      "name",
+                      "org",
+                      "path",
+                      "private",
+                      "scmUrl"
+                    ],
+                    "type": "object"
+                  },
+                  "unsupportedCapabilities": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "deletionPolicy",
+                  "deploymentServiceUrl",
+                  "fromRepo",
+                  "insecure",
+                  "replaceValues",
+                  "toRepo",
+                  "unsupportedCapabilities"
+                ],
+                "type": "object"
+              }
+            },
+            "required": [
+              "argocd",
+              "git"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "instance": {
+        "apiVersion": "apps.krateo.io/v1alpha1",
+        "kind": "FireworksappForm",
+        "metadata": {
+          "annotations": {
+            "krateo.io/connector-verbose": "true",
+            "kubectl.kubernetes.io/last-applied-configuration": "{\"apiVersion\":\"apps.krateo.io/v1alpha1\",\"kind\":\"FireworksappForm\",\"metadata\":{\"annotations\":{\"krateo.io/connector-verbose\":\"true\"},\"name\":\"fireworksapp\",\"namespace\":\"demo-system\"},\"spec\":{\"argocd\":{\"application\":{\"destination\":{\"namespace\":\"fireworks-app\",\"server\":\"https://kubernetes.default.svc\"},\"project\":\"default\",\"source\":{\"path\":\"chart/\"},\"syncPolicy\":{\"automated\":{\"prune\":true,\"selfHeal\":true},\"syncOptions\":[]}},\"namespace\":\"argocd\"},\"git\":{\"deletionPolicy\":\"Orphan\",\"deploymentServiceUrl\":\"http://deployment-service.krateo-system.svc\",\"fromRepo\":{\"branch\":\"3-implement-the-chart\",\"credentials\":{\"authMethod\":\"basic\",\"secretRef\":{\"key\":\"token\",\"name\":\"github-repo-creds\",\"namespace\":\"krateo-system\"}},\"name\":\"krateo-v2-template-fireworksapp\",\"org\":\"krateoplatformops\",\"path\":\"skeleton/\",\"scmUrl\":\"https://github.com\"},\"insecure\":true,\"replaceValues\":{\"key1\":\"value1\",\"key2\":5,\"key3\":true},\"toRepo\":{\"apiUrl\":\"https://api.github.com\",\"branch\":\"main\",\"credentials\":{\"authMethod\":\"basic\",\"secretRef\":{\"key\":\"token\",\"name\":\"github-repo-creds\",\"namespace\":\"krateo-system\"}},\"deletionPolicy\":\"Delete\",\"initialize\":true,\"name\":\"fireworksapp-test-v2\",\"org\":\"krateoplatformops\",\"path\":\"/\",\"private\":false,\"scmUrl\":\"https://github.com\"},\"unsupportedCapabilities\":true}}}\n"
+          },
+          "creationTimestamp": "2024-02-27T13:17:06Z",
+          "generation": 1,
+          "managedFields": [
+            {
+              "apiVersion": "apps.krateo.io/v1alpha1",
+              "fieldsType": "FieldsV1",
+              "fieldsV1": {
+                "f:metadata": {
+                  "f:annotations": {
+                    ".": {},
+                    "f:krateo.io/connector-verbose": {},
+                    "f:kubectl.kubernetes.io/last-applied-configuration": {}
+                  }
+                },
+                "f:spec": {
+                  ".": {},
+                  "f:argocd": {
+                    ".": {},
+                    "f:application": {
+                      ".": {},
+                      "f:destination": {
+                        ".": {},
+                        "f:namespace": {},
+                        "f:server": {}
+                      },
+                      "f:project": {},
+                      "f:source": {
+                        ".": {},
+                        "f:path": {}
+                      },
+                      "f:syncPolicy": {
+                        ".": {},
+                        "f:automated": {
+                          ".": {},
+                          "f:prune": {},
+                          "f:selfHeal": {}
+                        },
+                        "f:syncOptions": {}
+                      }
+                    },
+                    "f:namespace": {}
+                  },
+                  "f:git": {
+                    ".": {},
+                    "f:deletionPolicy": {},
+                    "f:deploymentServiceUrl": {},
+                    "f:fromRepo": {
+                      ".": {},
+                      "f:branch": {},
+                      "f:credentials": {
+                        ".": {},
+                        "f:authMethod": {},
+                        "f:secretRef": {
+                          ".": {},
+                          "f:key": {},
+                          "f:name": {},
+                          "f:namespace": {}
+                        }
+                      },
+                      "f:name": {},
+                      "f:org": {},
+                      "f:path": {},
+                      "f:scmUrl": {}
+                    },
+                    "f:insecure": {},
+                    "f:replaceValues": {
+                      ".": {},
+                      "f:key1": {},
+                      "f:key2": {},
+                      "f:key3": {}
+                    },
+                    "f:toRepo": {
+                      ".": {},
+                      "f:apiUrl": {},
+                      "f:branch": {},
+                      "f:credentials": {
+                        ".": {},
+                        "f:authMethod": {},
+                        "f:secretRef": {
+                          ".": {},
+                          "f:key": {},
+                          "f:name": {},
+                          "f:namespace": {}
+                        }
+                      },
+                      "f:deletionPolicy": {},
+                      "f:initialize": {},
+                      "f:name": {},
+                      "f:org": {},
+                      "f:path": {},
+                      "f:private": {},
+                      "f:scmUrl": {}
+                    },
+                    "f:unsupportedCapabilities": {}
+                  }
+                }
+              },
+              "manager": "kubectl-client-side-apply",
+              "operation": "Update",
+              "time": "2024-02-27T13:17:06Z"
+            }
+          ],
+          "name": "fireworksapp",
+          "namespace": "demo-system",
+          "resourceVersion": "539",
+          "uid": "6405f571-4328-499e-9e0c-286db4508be6"
+        },
+        "spec": {
+          "argocd": {
+            "application": {
+              "destination": {
+                "namespace": "fireworks-app",
+                "server": "https://kubernetes.default.svc"
+              },
+              "project": "default",
+              "source": {
+                "path": "chart/"
+              },
+              "syncPolicy": {
+                "automated": {
+                  "prune": true,
+                  "selfHeal": true
+                },
+                "syncOptions": []
+              }
+            },
+            "namespace": "argocd"
+          },
+          "git": {
+            "deletionPolicy": "Orphan",
+            "deploymentServiceUrl": "http://deployment-service.krateo-system.svc",
+            "fromRepo": {
+              "branch": "3-implement-the-chart",
+              "credentials": {
+                "authMethod": "basic",
+                "secretRef": {
+                  "key": "token",
+                  "name": "github-repo-creds",
+                  "namespace": "krateo-system"
+                }
+              },
+              "name": "krateo-v2-template-fireworksapp",
+              "org": "krateoplatformops",
+              "path": "skeleton/",
+              "scmUrl": "https://github.com"
+            },
+            "insecure": true,
+            "replaceValues": {
+              "key1": "value1",
+              "key2": 5,
+              "key3": true
+            },
+            "toRepo": {
+              "apiUrl": "https://api.github.com",
+              "branch": "main",
+              "credentials": {
+                "authMethod": "basic",
+                "secretRef": {
+                  "key": "token",
+                  "name": "github-repo-creds",
+                  "namespace": "krateo-system"
+                }
+              },
+              "deletionPolicy": "Delete",
+              "initialize": true,
+              "name": "fireworksapp-test-v2",
+              "org": "krateoplatformops",
+              "path": "/",
+              "private": false,
+              "scmUrl": "https://github.com"
+            },
+            "unsupportedCapabilities": true
+          }
+        }
+      }
+    }
+  }
+}

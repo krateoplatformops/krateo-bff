@@ -1,0 +1,137 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.13.0
+  name: formtemplates.widgets.ui.krateo.io
+spec:
+  group: widgets.ui.krateo.io
+  names:
+    categories:
+    - krateo
+    - template
+    - widgets
+    kind: FormTemplate
+    listKind: FormTemplateList
+    plural: formtemplates
+    singular: formtemplate
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            properties:
+              api:
+                description: APIList list of api calls.
+                items:
+                  description: API contains external api call info.
+                  properties:
+                    dependOn:
+                      type: string
+                    endpointRef:
+                      description: A Reference to a named object.
+                      properties:
+                        name:
+                          description: Name of the referenced object.
+                          type: string
+                        namespace:
+                          description: Namespace of the referenced object.
+                          type: string
+                      required:
+                      - name
+                      - namespace
+                      type: object
+                    headers:
+                      items:
+                        type: string
+                      type: array
+                    krateoGateway:
+                      type: boolean
+                    name:
+                      type: string
+                    path:
+                      type: string
+                    payload:
+                      type: string
+                    verb:
+                      default: GET
+                      type: string
+                  required:
+                  - name
+                  type: object
+                type: array
+              data:
+                items:
+                  properties:
+                    path:
+                      type: string
+                    value:
+                      type: string
+                  required:
+                  - path
+                  - value
+                  type: object
+                type: array
+              definitionRef:
+                description: 'DefinitionRef: reference to FormDefintion'
+                properties:
+                  name:
+                    description: Name of the referenced object.
+                    type: string
+                  namespace:
+                    description: Namespace of the referenced object.
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
+              resourceRef:
+                description: 'ResourceRef: reference to resource instance'
+                properties:
+                  name:
+                    description: Name of the referenced object.
+                    type: string
+                  namespace:
+                    description: Namespace of the referenced object.
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
+            required:
+            - definitionRef
+            - resourceRef
+            type: object
+          status:
+            properties:
+              content:
+                properties:
+                  instance:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                  schema:
+                    type: object
+                    x-kubernetes-preserve-unknown-fields: true
+                type: object
+            type: object
+            x-kubernetes-preserve-unknown-fields: true
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

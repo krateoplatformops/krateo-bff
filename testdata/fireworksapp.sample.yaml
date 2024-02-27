@@ -1,0 +1,60 @@
+---
+apiVersion: apps.krateo.io/v1alpha1
+kind: FireworksappForm
+metadata:
+  annotations:
+     "krateo.io/connector-verbose": "true"
+  name: fireworksapp
+  namespace: demo-system
+spec:
+  argocd:
+    namespace: argocd
+    application:
+      project: default
+      source:
+        path: chart/
+      destination:
+        server: https://kubernetes.default.svc
+        namespace: fireworks-app
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions: []
+  git:
+    deploymentServiceUrl: http://deployment-service.krateo-system.svc
+    unsupportedCapabilities: true
+    deletionPolicy: Orphan
+    insecure: true
+    fromRepo:
+      scmUrl: https://github.com
+      org: krateoplatformops
+      name: krateo-v2-template-fireworksapp
+      branch: 3-implement-the-chart
+      path: skeleton/
+      credentials:
+        authMethod: basic
+        secretRef:
+          namespace: krateo-system
+          name: github-repo-creds
+          key: token
+    toRepo:
+      scmUrl: https://github.com
+      org: krateoplatformops
+      name: fireworksapp-test-v2
+      branch: main
+      path: "/"
+      credentials:
+        authMethod: basic
+        secretRef:
+          namespace: krateo-system
+          name: github-repo-creds
+          key: token
+      apiUrl: https://api.github.com
+      private: false
+      initialize: true
+      deletionPolicy: Delete
+    replaceValues:
+      key1: value1
+      key2: 5
+      key3: true

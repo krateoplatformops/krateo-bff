@@ -1,8 +1,6 @@
 module github.com/krateoplatformops/krateo-bff
 
-go 1.21.4
-
-toolchain go1.21.6
+go 1.21.6
 
 require (
 	github.com/davecgh/go-spew v1.1.1

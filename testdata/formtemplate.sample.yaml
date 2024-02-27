@@ -1,0 +1,20 @@
+---
+apiVersion: widgets.ui.krateo.io/v1alpha1
+kind: FormTemplate
+metadata:
+  name: fireworksapp
+  namespace: demo-system
+spec:
+  definitionRef:
+    name: fireworksapp
+    namespace: demo-system
+  resourceRef:
+    name: fireworksapp
+    namespace: demo-system
+  data:
+    - path: .git.replaceValues.key1
+      value: value1
+    - path: .git.replaceValues.key2
+      value: "32"
+    - path: .git.replaceValues.key2
+      value: "false"

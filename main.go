@@ -22,6 +22,7 @@ import (
 	"github.com/krateoplatformops/krateo-bff/internal/server/routes/layout/rows"
 	"github.com/krateoplatformops/krateo-bff/internal/server/routes/verbs"
 	"github.com/krateoplatformops/krateo-bff/internal/server/routes/widgets/cardtemplates"
+	"github.com/krateoplatformops/krateo-bff/internal/server/routes/widgets/formtemplates"
 	"github.com/rs/zerolog"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -117,6 +118,7 @@ func main() {
 		Healty: &healthy, Version: Version, Build: Build, ServiceName: serviceName,
 	})
 	cardtemplates.Register(r, cfg, *authnNS)
+	formtemplates.Register(r, cfg, *authnNS)
 	columns.Register(r, cfg, *authnNS)
 	rows.Register(r, cfg, *authnNS)
 	verbs.Register(r, cfg)

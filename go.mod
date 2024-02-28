@@ -10,7 +10,6 @@ require (
 	github.com/krateoplatformops/provider-runtime v0.7.0
 	github.com/rs/zerolog v1.31.0
 	k8s.io/api v0.29.2
-	k8s.io/apiextensions-apiserver v0.29.0
 	k8s.io/apimachinery v0.29.2
 	k8s.io/client-go v0.29.2
 	k8s.io/gengo v0.0.0-20230829151522-9cce18d56c01
@@ -60,6 +59,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
+	k8s.io/apiextensions-apiserver v0.29.0 // indirect
 	k8s.io/klog/v2 v2.120.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20240126223410-2919ad4fcfec // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect

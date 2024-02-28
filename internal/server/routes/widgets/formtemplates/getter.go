@@ -11,10 +11,10 @@ import (
 	formtemplatesv1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/formtemplates/v1alpha1"
 	rbacutil "github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac/util"
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/widgets/formtemplates"
-	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/widgets/formtemplates/evaluator"
 	"github.com/krateoplatformops/krateo-bff/internal/server/encode"
 	"github.com/rs/zerolog"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/rest"
 )
@@ -123,27 +123,43 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	err = evaluator.Eval(context.Background(), obj, evaluator.EvalOptions{
-		RESTConfig: r.rc, AuthnNS: r.authnNS, Subject: sub, Groups: orgs,
-	})
+	def, err := getFormDefinition(context.TODO(), r.rc, obj)
 	if err != nil {
 		log.Err(err).
-			Str("sub", sub).
-			Strs("orgs", orgs).
-			Str("name", name).
 			Str("namespace", namespace).
 			Str("object", obj.GetName()).
-			Msg("unable to evaluate form template")
+			Msg("unable to resolve form definition reference")
 
 		encode.Invalid(wri, err)
 		return
 	}
 
-	// log.Debug().
-	// 	Str("name", obj.GetName()).
-	// 	Str("namespace", namespace).
-	// 	Strs("verbs", verbs).
-	// 	Msg("successfully resolved allowed verbs for sub in orgs")
+	sch, err := getFormSchema(context.TODO(), r.rc, def)
+	if err != nil {
+		log.Err(err).
+			Str("namespace", namespace).
+			Str("object", obj.GetName()).
+			Msg("unable to resolve form definition openAPI schema")
+
+		encode.Invalid(wri, err)
+		return
+	}
+
+	vals, err := getFormValues(context.TODO(), r.rc, def, obj)
+	if err != nil {
+		log.Err(err).
+			Str("namespace", namespace).
+			Str("object", obj.GetName()).
+			Msg("unable to resolve form values")
+
+		encode.Invalid(wri, err)
+		return
+	}
+
+	obj.Status.Content = &formtemplatesv1alpha1.FormTemplateStatusContent{
+		Instance: &runtime.RawExtension{Object: vals},
+		Schema:   &runtime.RawExtension{Object: sch},
+	}
 
 	wri.Header().Set("Content-Type", "application/json")
 	wri.WriteHeader(http.StatusOK)

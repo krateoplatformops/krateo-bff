@@ -1,6 +1,9 @@
 package v1alpha1
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/krateoplatformops/krateo-bff/apis/core"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -9,6 +12,11 @@ import (
 type DataItem struct {
 	Path  string `json:"path"`
 	Value string `json:"value"`
+}
+
+func (di *DataItem) String() string {
+	return fmt.Sprintf("%s=%s",
+		strings.TrimSpace(di.Path), strings.TrimSpace(di.Value))
 }
 
 type FormTemplateSpec struct {

@@ -12,9 +12,9 @@ spec:
     name: fireworksapp
     namespace: demo-system
   data:
-    - path: .git.replaceValues.key1
-      value: value1
-    - path: .git.replaceValues.key2
+    - path: spec.git.replaceValues.key1
+      value: "Hello"
+    - path: spec.git.replaceValues.key2
       value: "32"
-    - path: .git.replaceValues.key2
-      value: "false"
+    - path: spec.git.replaceValues.key3
+      value: "true"

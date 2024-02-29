@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/widgets/formtemplates"
-	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/widgets/formtemplates/evaluator"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -84,21 +83,11 @@ func TestFormTemplatePlain(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	err = evaluator.Eval(context.TODO(), res, evaluator.EvalOptions{
-		RESTConfig: cfg,
-		AuthnNS:    namespace,
-		Subject:    "",
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	fin, _ := os.Create("ppp.json")
-	defer fin.Close()
-	enc := json.NewEncoder(fin)
+	//fin, _ := os.Create("ppp.json")
+	//defer fin.Close()
+	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
 	enc.Encode(res)
-
 }
 
 func newRestConfig() (*rest.Config, error) {

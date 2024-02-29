@@ -55,6 +55,6 @@ spec:
       initialize: true
       deletionPolicy: Delete
     replaceValues:
-      key1: value1
-      key2: 5
-      key3: true
+      key1: ciao
+      key2: 1
+      key3: false

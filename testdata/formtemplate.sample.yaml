@@ -5,16 +5,6 @@ metadata:
   name: fireworksapp
   namespace: demo-system
 spec:
-  definitionRef:
+  schemaDefinitionRef:
     name: fireworksapp
     namespace: demo-system
-  resourceRef:
-    name: fireworksapp
-    namespace: demo-system
-  data:
-    - path: spec.git.replaceValues.key1
-      value: "Hello"
-    - path: spec.git.replaceValues.key2
-      value: "32"
-    - path: spec.git.replaceValues.key3
-      value: "true"

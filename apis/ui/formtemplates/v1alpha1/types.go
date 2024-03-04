@@ -20,18 +20,7 @@ func (di *DataItem) String() string {
 }
 
 type FormTemplateSpec struct {
-	// DefinitionRef: reference to FormDefintion
-	DefinitionRef *core.Reference `json:"definitionRef"`
-
-	// ResourceRef: reference to resource instance
-	ResourceRef *core.Reference `json:"resourceRef"`
-
-	// +optional
-	Data []*DataItem `json:"data,omitempty"`
-
-	// APIList list of api calls.
-	// +optional
-	APIList []*core.API `json:"api,omitempty"`
+	SchemaDefinitionRef *core.Reference `json:"schemaDefinitionRef"`
 }
 
 type FormTemplateStatusContent struct {
@@ -61,7 +50,6 @@ type FormTemplate struct {
 
 // +kubebuilder:object:root=true
 
-// FormTemplateList contains a list of FormTemplate
 type FormTemplateList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

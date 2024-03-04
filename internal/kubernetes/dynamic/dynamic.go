@@ -16,6 +16,8 @@ import (
 	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/restmapper"
+	"k8s.io/gengo/namer"
+	"k8s.io/gengo/types"
 )
 
 func NewGetter(rc *rest.Config) (*Getter, error) {
@@ -100,4 +102,18 @@ func Extract(ctx context.Context, obj *unstructured.Unstructured, filter string)
 	var xxx any
 	err = json.NewDecoder(buf).Decode(&xxx)
 	return xxx, err
+}
+
+func InferGroupResource(g, k string) schema.GroupResource {
+	gk := schema.GroupKind{
+		Group: g,
+		Kind:  k,
+	}
+
+	kind := types.Type{Name: types.Name{Name: gk.Kind}}
+	namer := namer.NewPrivatePluralNamer(nil)
+	return schema.GroupResource{
+		Group:    gk.Group,
+		Resource: strings.ToLower(namer.Name(&kind)),
+	}
 }

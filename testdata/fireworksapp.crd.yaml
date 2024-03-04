@@ -4,7 +4,7 @@ kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.14.0
-  name: fireworksappforms.apps.krateo.io
+  name: fireworksapps.apps.krateo.io
 spec:
   group: apps.krateo.io
   names:
@@ -12,10 +12,10 @@ spec:
     - app
     - fireworks
     - krateo
-    kind: FireworksappForm
-    listKind: FireworksappFormList
-    plural: fireworksappforms
-    singular: fireworksappform
+    kind: Fireworksapp
+    listKind: FireworksappList
+    plural: fireworksapps
+    singular: fireworksapp
   scope: Namespaced
   versions:
   - name: v1alpha1

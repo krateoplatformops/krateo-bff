@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
-	cardtemplatev1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplates/v1alpha1"
 	rbacutil "github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac/util"
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/widgets/cardtemplates"
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/widgets/cardtemplates/evaluator"
@@ -20,17 +19,16 @@ import (
 )
 
 const (
-	getterPath = "/apis/widgets.ui.krateo.io/v1alpha1/cardtemplates/{name}"
+	getterPath = "/apis/widgets.ui.krateo.io/cardtemplates/{name}"
 )
 
 func newGetter(rc *rest.Config, authnNS string) (string, http.HandlerFunc) {
-	gr := cardtemplatev1alpha1.CardTemplateGroupVersionKind.GroupVersion().
-		WithResource("cardtemplates").
-		GroupResource()
-
 	handler := &getter{
-		rc:      rc,
-		gr:      gr,
+		rc: rc,
+		gr: schema.GroupResource{
+			Group:    group,
+			Resource: resource,
+		},
 		authnNS: authnNS,
 	}
 	return getterPath, func(wri http.ResponseWriter, req *http.Request) {

@@ -1,6 +1,6 @@
 ---
 apiVersion: apps.krateo.io/v1alpha1
-kind: FireworksappForm
+kind: Fireworksapp
 metadata:
   annotations:
      "krateo.io/connector-verbose": "true"

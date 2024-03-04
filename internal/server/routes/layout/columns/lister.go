@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strings"
 
-	columnsv1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/columns/v1alpha1"
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/layout/columns"
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/layout/columns/evaluator"
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac/util"
@@ -21,16 +20,20 @@ import (
 )
 
 const (
-	listerPath                        = "/apis/layout.ui.krateo.io/v1alpha1/columns"
+	listerPath                        = "/apis/layout.ui.krateo.io/columns"
 	forbiddenListAtClusterScopeMsgFmt = "forbidden: User %q cannot list resource \"columns\" in API group \"layout.ui.krateo.io\" at cluster scope"
 	forbiddenListInNamespaceMsgFmt    = "forbidden: User %q cannot list resource \"columns\" in API group \"layout.ui.krateo.io\" in namespace %s"
 )
 
 func newLister(rc *rest.Config, authnNS string) (string, http.HandlerFunc) {
-	gr := columnsv1alpha1.ColumnGroupVersionKind.GroupVersion().
-		WithResource(resources).
-		GroupResource()
-	handler := &lister{rc: rc, authnNS: authnNS, gr: gr}
+	handler := &lister{
+		rc:      rc,
+		authnNS: authnNS,
+		gr: schema.GroupResource{
+			Group:    group,
+			Resource: resource,
+		},
+	}
 	return listerPath, func(wri http.ResponseWriter, req *http.Request) {
 		handler.ServeHTTP(wri, req)
 	}
@@ -55,12 +58,10 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 	orgs := strings.Split(qs.Get("orgs"), ",")
 
 	ok, err := rbacutil.CanListResource(context.TODO(), r.rc, rbacutil.ResourceInfo{
-		Subject: sub,
-		Groups:  orgs,
-		GroupResource: schema.GroupResource{
-			Group: columnsv1alpha1.Group, Resource: resources,
-		},
-		Namespace: namespace,
+		Subject:       sub,
+		Groups:        orgs,
+		GroupResource: r.gr,
+		Namespace:     namespace,
 	})
 	if err != nil {
 		log.Err(err).

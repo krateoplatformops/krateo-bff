@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
-	rowsv1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/rows/v1alpha1"
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/layout/rows"
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/layout/rows/evaluator"
 
@@ -22,18 +21,17 @@ import (
 )
 
 const (
-	getterPath         = "/apis/layout.ui.krateo.io/v1alpha1/rows/{name}"
+	getterPath         = "/apis/layout.ui.krateo.io/rows/{name}"
 	forbiddenGetMsgFmt = "forbidden: User %q cannot get resource %q in API group \"layout.ui.krateo.io\" in namespace %s"
 )
 
 func newGetter(rc *rest.Config, authnNS string) (string, http.HandlerFunc) {
-	gr := rowsv1alpha1.RowGroupVersionKind.GroupVersion().
-		WithResource(resources).
-		GroupResource()
-
 	handler := &getter{
-		rc:      rc,
-		gr:      gr,
+		rc: rc,
+		gr: schema.GroupResource{
+			Group:    group,
+			Resource: resource,
+		},
 		authnNS: authnNS,
 	}
 	return getterPath, func(wri http.ResponseWriter, req *http.Request) {
@@ -62,13 +60,11 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 	orgs := strings.Split(qs.Get("orgs"), ",")
 
 	ok, err := rbacutil.CanListResource(context.TODO(), r.rc, rbacutil.ResourceInfo{
-		Subject: sub,
-		Groups:  orgs,
-		GroupResource: schema.GroupResource{
-			Group: rowsv1alpha1.Group, Resource: resources,
-		},
-		ResourceName: name,
-		Namespace:    namespace,
+		Subject:       sub,
+		Groups:        orgs,
+		GroupResource: r.gr,
+		ResourceName:  name,
+		Namespace:     namespace,
 	})
 	if err != nil {
 		log.Err(err).

@@ -7,6 +7,8 @@ import (
 
 const (
 	allowedVerbsAnnotationKey = "krateo.io/allowed-verbs"
+	group                     = "widgets.ui.krateo.io"
+	resource                  = "formtemplates"
 )
 
 func Register(r *chi.Mux, rc *rest.Config, authnNS string) {

@@ -36,72 +36,8 @@ spec:
             type: object
           spec:
             properties:
-              api:
-                description: APIList list of api calls.
-                items:
-                  description: API contains external api call info.
-                  properties:
-                    dependOn:
-                      type: string
-                    endpointRef:
-                      description: A Reference to a named object.
-                      properties:
-                        name:
-                          description: Name of the referenced object.
-                          type: string
-                        namespace:
-                          description: Namespace of the referenced object.
-                          type: string
-                      required:
-                      - name
-                      - namespace
-                      type: object
-                    headers:
-                      items:
-                        type: string
-                      type: array
-                    krateoGateway:
-                      type: boolean
-                    name:
-                      type: string
-                    path:
-                      type: string
-                    payload:
-                      type: string
-                    verb:
-                      default: GET
-                      type: string
-                  required:
-                  - name
-                  type: object
-                type: array
-              data:
-                items:
-                  properties:
-                    path:
-                      type: string
-                    value:
-                      type: string
-                  required:
-                  - path
-                  - value
-                  type: object
-                type: array
-              definitionRef:
-                description: 'DefinitionRef: reference to FormDefintion'
-                properties:
-                  name:
-                    description: Name of the referenced object.
-                    type: string
-                  namespace:
-                    description: Namespace of the referenced object.
-                    type: string
-                required:
-                - name
-                - namespace
-                type: object
-              resourceRef:
-                description: 'ResourceRef: reference to resource instance'
+              schemaDefinitionRef:
+                description: A Reference to a named object.
                 properties:
                   name:
                     description: Name of the referenced object.
@@ -114,8 +50,7 @@ spec:
                 - namespace
                 type: object
             required:
-            - definitionRef
-            - resourceRef
+            - schemaDefinitionRef
             type: object
           status:
             properties:

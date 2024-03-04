@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strings"
 
-	cardtemplatev1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplates/v1alpha1"
 	rbacutil "github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac/util"
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/widgets/cardtemplates"
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/widgets/cardtemplates/evaluator"
@@ -20,16 +19,20 @@ import (
 )
 
 const (
-	listerPath                    = "/apis/widgets.ui.krateo.io/v1alpha1/cardtemplates"
+	listerPath                    = "/apis/widgets.ui.krateo.io/cardtemplates"
 	forbiddenAtClusterScopeMsgFmt = "forbidden: User %q cannot list resource \"cardtemplates\" in API group \"widgets.ui.krateo.io\" at cluster scope"
 	forbiddenInNamespaceMsgFmt    = "forbidden: User %q cannot list resource \"cardtemplates\" in API group \"widgets.ui.krateo.io\" in namespace %s"
 )
 
 func newLister(rc *rest.Config, authnNS string) (string, http.HandlerFunc) {
-	gr := cardtemplatev1alpha1.CardTemplateGroupVersionKind.GroupVersion().
-		WithResource("cardtemplates").
-		GroupResource()
-	handler := &lister{rc: rc, authnNS: authnNS, gr: gr}
+	handler := &lister{
+		rc:      rc,
+		authnNS: authnNS,
+		gr: schema.GroupResource{
+			Group:    group,
+			Resource: resource,
+		},
+	}
 	return listerPath, func(wri http.ResponseWriter, req *http.Request) {
 		handler.ServeHTTP(wri, req)
 	}
@@ -54,12 +57,10 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 	orgs := strings.Split(qs.Get("orgs"), ",")
 
 	ok, err := rbacutil.CanListResource(context.TODO(), r.rc, rbacutil.ResourceInfo{
-		Subject: sub,
-		Groups:  orgs,
-		GroupResource: schema.GroupResource{
-			Group: cardtemplatev1alpha1.Group, Resource: "cardtemplates",
-		},
-		Namespace: namespace,
+		Subject:       sub,
+		Groups:        orgs,
+		GroupResource: r.gr,
+		Namespace:     namespace,
 	})
 	if err != nil {
 		log.Err(err).

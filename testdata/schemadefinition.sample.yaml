@@ -1,5 +1,5 @@
 apiVersion: core.krateo.io/v1alpha1
-kind: FormDefinition
+kind: SchemaDefinition
 metadata:
   annotations:
      "krateo.io/connector-verbose": "true"
@@ -7,7 +7,6 @@ metadata:
   namespace: demo-system
 spec:
   schema:
-    #group: apps.krateo.io
     version: v1alpha1
-    kind: FireworksappForm
+    kind: Fireworksapp
     url: https://raw.githubusercontent.com/krateoplatformops/krateo-v2-template-fireworksapp/main/chart/values.schema.json

@@ -49,8 +49,6 @@ type getter struct {
 }
 
 func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
-	log := zerolog.Ctx(req.Context()).With().Logger()
-
 	name := chi.URLParam(req, "name")
 
 	qs := req.URL.Query()
@@ -58,6 +56,18 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 	namespace := qs.Get("namespace")
 	sub := qs.Get("sub")
 	orgs := strings.Split(qs.Get("orgs"), ",")
+	version := qs.Get("version")
+	if len(version) == 0 {
+		version = "v1alpha1"
+	}
+
+	log := zerolog.Ctx(req.Context()).With().
+		Str("sub", sub).
+		Strs("orgs", orgs).
+		Str("name", name).
+		Str("namespace", namespace).
+		Str("version", version).
+		Logger()
 
 	ok, err := rbacutil.CanListResource(context.TODO(), r.rc, rbacutil.ResourceInfo{
 		Subject:       sub,
@@ -67,12 +77,7 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		Namespace:     namespace,
 	})
 	if err != nil {
-		log.Err(err).
-			Str("sub", sub).
-			Strs("orgs", orgs).
-			Str("name", name).
-			Str("namespace", namespace).
-			Msg("checking if 'get' verb is allowed")
+		log.Err(err).Msg("checking if 'get' verb is allowed")
 		encode.InternalError(wri, err)
 		return
 	}
@@ -82,23 +87,10 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	log.Debug().
-		Str("sub", sub).
-		Strs("orgs", orgs).
-		Str("name", name).
-		Str("namespace", namespace).
-		Msg("resolving rows")
-
 	if r.client == nil {
 		cli, err := rows.NewClient(r.rc)
 		if err != nil {
-			log.Err(err).
-				Str("sub", sub).
-				Strs("orgs", orgs).
-				Str("name", name).
-				Str("namespace", namespace).
-				Msg("unable to create rows rest client")
-
+			log.Err(err).Msg("unable to create rows rest client")
 			encode.InternalError(wri, err)
 			return
 		}
@@ -108,13 +100,7 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 
 	obj, err := r.client.Namespace(namespace).Get(context.TODO(), name)
 	if err != nil {
-		log.Err(err).
-			Str("sub", sub).
-			Strs("orgs", orgs).
-			Str("name", name).
-			Str("namespace", namespace).
-			Msg("unable to resolve row")
-
+		log.Err(err).Msg("unable to resolve row")
 		if apierrors.IsNotFound(err) {
 			encode.NotFound(wri, err)
 		} else {
@@ -128,10 +114,6 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 	})
 	if err != nil {
 		log.Err(err).
-			Str("sub", sub).
-			Strs("orgs", orgs).
-			Str("name", name).
-			Str("namespace", namespace).
 			Str("object", obj.GetName()).
 			Msg("unable to evaluate row")
 
@@ -147,8 +129,7 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		})
 		if err != nil {
 			log.Err(err).
-				Str("name", name).
-				Str("namespace", namespace).
+				Str("object", obj.GetName()).
 				Msg("unable to resolve allowed verbs")
 			encode.Invalid(wri, err)
 			return

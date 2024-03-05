@@ -48,13 +48,22 @@ type lister struct {
 }
 
 func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
-	log := zerolog.Ctx(req.Context()).With().Logger()
-
 	qs := req.URL.Query()
 
 	namespace := qs.Get("namespace")
 	sub := qs.Get("sub")
 	orgs := strings.Split(qs.Get("orgs"), ",")
+	version := qs.Get("version")
+	if len(version) == 0 {
+		version = "v1alpha1"
+	}
+
+	log := zerolog.Ctx(req.Context()).With().
+		Str("sub", sub).
+		Strs("orgs", orgs).
+		Str("namespace", namespace).
+		Str("version", version).
+		Logger()
 
 	ok, err := rbacutil.CanListResource(context.TODO(), r.rc, rbacutil.ResourceInfo{
 		Subject:       sub,
@@ -63,11 +72,7 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		Namespace:     namespace,
 	})
 	if err != nil {
-		log.Err(err).
-			Str("sub", sub).
-			Strs("orgs", orgs).
-			Str("namespace", namespace).
-			Msg("checking if 'get' verb is allowed")
+		log.Err(err).Msg("checking if 'get' verb is allowed")
 		encode.InternalError(wri, err)
 		return
 	}
@@ -81,21 +86,10 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	log.Debug().
-		Str("sub", sub).
-		Strs("orgs", orgs).
-		Str("namespace", namespace).
-		Msg("resolving card template list")
-
 	if r.client == nil {
 		cli, err := cardtemplates.NewClient(r.rc)
 		if err != nil {
-			log.Err(err).
-				Str("sub", sub).
-				Strs("orgs", orgs).
-				Str("namespace", namespace).
-				Msg("unable to create card template rest client")
-
+			log.Err(err).Msg("unable to create card template rest client")
 			encode.InternalError(wri, err)
 			return
 		}
@@ -105,12 +99,7 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 
 	all, err := r.client.Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
 	if err != nil {
-		log.Err(err).
-			Str("sub", sub).
-			Strs("orgs", orgs).
-			Str("namespace", namespace).
-			Msg("unable to list card template")
-
+		log.Err(err).Msg("unable to list card template")
 		if apierrors.IsNotFound(err) {
 			encode.NotFound(wri, err)
 		} else {

@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/go-chi/chi/v5"
 	formtemplatesv1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/formtemplates/v1alpha1"
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/dynamic"
 	rbacutil "github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac/util"
@@ -16,32 +15,33 @@ import (
 	"github.com/krateoplatformops/krateo-bff/internal/server/encode"
 	"github.com/rs/zerolog"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/rest"
 )
 
 const (
-	getterPath = "/apis/widgets.ui.krateo.io/formtemplates/{name}"
+	listerPath = "/apis/widgets.ui.krateo.io/formtemplates"
 )
 
-func newGetter(rc *rest.Config, authnNS string) (string, http.HandlerFunc) {
-	handler := &getter{
-		rc: rc,
+func newLister(rc *rest.Config, authnNS string) (string, http.HandlerFunc) {
+	handler := &lister{
+		rc:      rc,
+		authnNS: authnNS,
 		gr: schema.GroupResource{
 			Group:    group,
 			Resource: resource,
 		},
-		authnNS: authnNS,
 	}
-	return getterPath, func(wri http.ResponseWriter, req *http.Request) {
+	return listerPath, func(wri http.ResponseWriter, req *http.Request) {
 		handler.ServeHTTP(wri, req)
 	}
 }
 
-var _ http.Handler = (*getter)(nil)
+var _ http.Handler = (*lister)(nil)
 
-type getter struct {
+type lister struct {
 	rc                *rest.Config
 	gr                schema.GroupResource
 	templatesClient   *formtemplates.Client
@@ -49,9 +49,7 @@ type getter struct {
 	authnNS           string
 }
 
-func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
-	name := chi.URLParam(req, "name")
-
+func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 	qs := req.URL.Query()
 
 	namespace := qs.Get("namespace")
@@ -65,7 +63,6 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 	log := zerolog.Ctx(req.Context()).With().
 		Str("sub", sub).
 		Strs("orgs", orgs).
-		Str("name", name).
 		Str("namespace", namespace).
 		Str("version", version).
 		Logger()
@@ -76,9 +73,9 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	obj, err := r.templatesClient.Namespace(namespace).Get(context.Background(), name)
+	all, err := r.templatesClient.Namespace(namespace).List(context.Background(), metav1.ListOptions{})
 	if err != nil {
-		log.Err(err).Msg("unable to resolve form template")
+		log.Err(err).Msg("unable to resolve form templates")
 		if apierrors.IsNotFound(err) {
 			encode.NotFound(wri, err)
 		} else {
@@ -87,52 +84,50 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	formGVK, err := r.definitionsClient.Namespace(obj.Spec.SchemaDefinitionRef.Namespace).
-		GVK(context.Background(), obj.Spec.SchemaDefinitionRef.Name)
-	if err != nil {
-		log.Err(err).Msg("unable to resolve form definition gvk")
-		if apierrors.IsNotFound(err) {
-			encode.NotFound(wri, err)
-		} else {
-			encode.Invalid(wri, err)
+	for i := 0; i < len(all.Items); i++ {
+		obj := &all.Items[i]
+		formGVK, err := r.definitionsClient.Namespace(obj.Spec.SchemaDefinitionRef.Namespace).
+			GVK(context.Background(), obj.Spec.SchemaDefinitionRef.Name)
+		if err != nil {
+			log.Err(err).Msg("unable to resolve form definition gvk")
+			if apierrors.IsNotFound(err) {
+				encode.NotFound(wri, err)
+			} else {
+				encode.Invalid(wri, err)
+			}
+			return
 		}
-		return
-	}
 
-	ok, err := rbacutil.CanListResource(context.TODO(), r.rc, rbacutil.ResourceInfo{
-		Subject:       sub,
-		Groups:        orgs,
-		GroupResource: dynamic.InferGroupResource(formGVK.Group, formGVK.Kind),
-		ResourceName:  name,
-		Namespace:     namespace,
-	})
-	if err != nil {
-		log.Err(err).Msg("checking if 'get' verb is allowed")
-		encode.InternalError(wri, err)
-		return
-	}
+		ok, err := rbacutil.CanListResource(context.TODO(), r.rc, rbacutil.ResourceInfo{
+			Subject:       sub,
+			Groups:        orgs,
+			GroupResource: dynamic.InferGroupResource(formGVK.Group, formGVK.Kind),
+			Namespace:     namespace,
+		})
+		if err != nil {
+			log.Err(err).Msg("checking if 'get' verb is allowed")
+			encode.InternalError(wri, err)
+			return
+		}
 
-	if !ok {
-		gr := dynamic.InferGroupResource(formGVK.Group, formGVK.Kind)
-		encode.Forbidden(wri,
-			fmt.Errorf("forbidden: User %q cannot get resource %q", sub, gr))
-		return
-	}
+		if !ok {
+			gr := dynamic.InferGroupResource(formGVK.Group, formGVK.Kind)
+			encode.Forbidden(wri,
+				fmt.Errorf("forbidden: User %q cannot get resource %q", sub, gr))
+			return
+		}
 
-	sch, err := r.definitionsClient.OpenAPISchema(context.Background(), formGVK)
-	if err != nil {
-		log.Err(err).
-			Str("gvk", formGVK.String()).
-			Str("object", obj.GetName()).
-			Msg("unable to resolve schema definition openAPI schema")
+		sch, err := r.definitionsClient.OpenAPISchema(context.Background(), formGVK)
+		if err != nil {
+			log.Err(err).Msg("unable to resolve schema definition openAPI schema")
+			encode.Invalid(wri, err)
+			return
+		}
 
-		encode.Invalid(wri, err)
-		return
-	}
-
-	obj.Status.Content = &formtemplatesv1alpha1.FormTemplateStatusContent{
-		//Instance: &runtime.RawExtension{Object: vals},
-		Schema: &runtime.RawExtension{Object: sch},
+		obj.Status.Content = &formtemplatesv1alpha1.FormTemplateStatusContent{
+			//Instance: &runtime.RawExtension{Object: vals},
+			Schema: &runtime.RawExtension{Object: sch},
+		}
 	}
 
 	wri.Header().Set("Content-Type", "application/json")
@@ -140,12 +135,12 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 
 	enc := json.NewEncoder(wri)
 	enc.SetIndent("", "  ")
-	if err := enc.Encode(obj); err != nil {
-		log.Err(err).Msg("unable to serve json encoded form template")
+	if err := enc.Encode(all); err != nil {
+		log.Err(err).Msg("unable to serve json encoded form template list")
 	}
 }
 
-func (r *getter) complete() error {
+func (r *lister) complete() error {
 	if r.templatesClient == nil {
 		cli, err := formtemplates.NewClient(r.rc)
 		if err != nil {

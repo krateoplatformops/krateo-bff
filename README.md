@@ -116,6 +116,24 @@ curl "http://localhost:8090/apis/layout.ui.krateo.io/rows/two?sub=cyberjoker&org
 ## FormTemplate API
 
 
+### List all rows
+
+|                   |                                                                                     |
+|:------------------|:------------------------------------------------------------------------------------|
+| **Verb**          | `GET`                                                                               |
+| **Path**          | `/apis/widgets.ui.krateo.io/formtemplates`                                          |
+| **Query Params**  | `sub`: username (subject)                                                           |
+|                   | `orgs`: comma separated organizations                                               |
+|                   | `namespace`: namespace where to list cardtemplates (optional)                       |
+|                   | `version`: cardtemplates schema version (optional)                                  |
+
+**Example**:
+
+```sh
+curl "http://localhost:8090/apis/widgets.ui.krateo.io/formtemplates?sub=cyberjoker&orgs=devs&namespace=demo-system"
+```
+
+
 ### Get one formtemplate
 
 |                   |                                                                                     |

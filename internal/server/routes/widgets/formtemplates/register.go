@@ -13,4 +13,5 @@ const (
 
 func Register(r *chi.Mux, rc *rest.Config, authnNS string) {
 	r.Get(newGetter(rc, authnNS))
+	r.Get(newLister(rc, authnNS))
 }

@@ -58,7 +58,7 @@ func (c *Client) GVK(ctx context.Context, name string) (schema.GroupVersionKind,
 		Name:      name,
 	})
 	if err != nil {
-		return schema.GroupVersionKind{}, nil
+		return schema.GroupVersionKind{}, err
 	}
 
 	data, ok, err := unstructured.NestedStringMap(obj.Object, "spec", "schema")
@@ -66,7 +66,8 @@ func (c *Client) GVK(ctx context.Context, name string) (schema.GroupVersionKind,
 		return schema.GroupVersionKind{}, err
 	}
 	if !ok {
-		return schema.GroupVersionKind{}, nil
+		return schema.GroupVersionKind{},
+			fmt.Errorf("nested map %q not found in '%s/%s'", "spec.schema", c.ns, name)
 	}
 
 	kind := data["kind"]

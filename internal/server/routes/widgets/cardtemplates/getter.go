@@ -46,8 +46,6 @@ type getter struct {
 }
 
 func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
-	log := zerolog.Ctx(req.Context()).With().Logger()
-
 	name := chi.URLParam(req, "name")
 
 	qs := req.URL.Query()
@@ -55,6 +53,18 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 	namespace := qs.Get("namespace")
 	sub := qs.Get("sub")
 	orgs := strings.Split(qs.Get("orgs"), ",")
+	version := qs.Get("version")
+	if len(version) == 0 {
+		version = "v1alpha1"
+	}
+
+	log := zerolog.Ctx(req.Context()).With().
+		Str("sub", sub).
+		Strs("orgs", orgs).
+		Str("name", name).
+		Str("namespace", namespace).
+		Str("version", version).
+		Logger()
 
 	ok, err := rbacutil.CanListResource(context.TODO(), r.rc, rbacutil.ResourceInfo{
 		Subject:       sub,
@@ -64,12 +74,7 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		Namespace:     namespace,
 	})
 	if err != nil {
-		log.Err(err).
-			Str("sub", sub).
-			Strs("orgs", orgs).
-			Str("name", name).
-			Str("namespace", namespace).
-			Msg("checking if 'get' verb is allowed")
+		log.Err(err).Msg("checking if 'get' verb is allowed")
 		encode.InternalError(wri, err)
 		return
 	}
@@ -80,23 +85,10 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	log.Debug().
-		Str("sub", sub).
-		Strs("orgs", orgs).
-		Str("name", name).
-		Str("namespace", namespace).
-		Msg("resolving card template")
-
 	if r.client == nil {
 		cli, err := cardtemplates.NewClient(r.rc)
 		if err != nil {
-			log.Err(err).
-				Str("sub", sub).
-				Strs("orgs", orgs).
-				Str("name", name).
-				Str("namespace", namespace).
-				Msg("unable to create card template rest client")
-
+			log.Err(err).Msg("unable to create card template rest client")
 			encode.InternalError(wri, err)
 			return
 		}
@@ -106,13 +98,7 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 
 	obj, err := r.client.Namespace(namespace).Get(context.TODO(), name)
 	if err != nil {
-		log.Err(err).
-			Str("sub", sub).
-			Strs("orgs", orgs).
-			Str("name", name).
-			Str("namespace", namespace).
-			Msg("unable to resolve card template")
-
+		log.Err(err).Msg("unable to resolve card template")
 		if apierrors.IsNotFound(err) {
 			encode.NotFound(wri, err)
 		} else {
@@ -126,22 +112,11 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 	})
 	if err != nil {
 		log.Err(err).
-			Str("sub", sub).
-			Strs("orgs", orgs).
-			Str("name", name).
-			Str("namespace", namespace).
 			Str("object", obj.GetName()).
 			Msg("unable to evaluate card template")
-
 		encode.Invalid(wri, err)
 		return
 	}
-
-	// log.Debug().
-	// 	Str("name", obj.GetName()).
-	// 	Str("namespace", namespace).
-	// 	Strs("verbs", verbs).
-	// 	Msg("successfully resolved allowed verbs for sub in orgs")
 
 	wri.Header().Set("Content-Type", "application/json")
 	wri.WriteHeader(http.StatusOK)

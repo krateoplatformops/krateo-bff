@@ -3,8 +3,10 @@ package schemadefinitions
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/dynamic"
+	"github.com/krateoplatformops/krateo-bff/internal/strvals"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/rest"
@@ -102,7 +104,27 @@ func (c *Client) OpenAPISchema(ctx context.Context, gkv schema.GroupVersionKind)
 		return nil, err
 	}
 
+	dict, ok := sch.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("expecting 'map[string]any', got: %T", sch)
+	}
+
+	err = injectMetadata(dict)
 	return &unstructured.Unstructured{
 		Object: sch.(map[string]any),
-	}, nil
+	}, err
+}
+
+func injectMetadata(in map[string]any) error {
+	lines := []string{
+		"properties.metadata.type=object",
+		"properties.metadata.properties.name.type=string",
+		"properties.metadata.properties.namespace.type=string",
+		"properties.metadata.properties.namespace.type=string",
+		"properties.metadata.required={name,namespace}",
+	}
+
+	metadata := strings.Join(lines, ",")
+
+	return strvals.ParseInto(metadata, in)
 }

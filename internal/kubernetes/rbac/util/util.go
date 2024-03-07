@@ -34,6 +34,20 @@ func CanListResource(ctx context.Context, restConfig *rest.Config, opts Resource
 	return false, nil
 }
 
+func CanCreateOrUpdateResource(ctx context.Context, restConfig *rest.Config, opts ResourceInfo) (bool, error) {
+	verbs, err := GetAllowedVerbs(ctx, restConfig, opts)
+	if err != nil {
+		return false, err
+	}
+	if slices.Contains(verbs, "*") {
+		return true, nil
+	}
+
+	ok := slices.Contains(verbs, "create")
+	ok = ok && slices.Contains(verbs, "update")
+	return ok, nil
+}
+
 func GetAllowedVerbs(ctx context.Context, restConfig *rest.Config, opts ResourceInfo) ([]string, error) {
 	rbacClient, err := rbac.NewForConfig(restConfig)
 	if err != nil {

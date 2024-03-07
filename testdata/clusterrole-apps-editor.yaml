@@ -1,0 +1,29 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: apps-editor
+rules:
+- apiGroups:
+  - apps.krateo.io
+  resources:
+  - '*'
+  verbs:
+  - get
+  - list
+  - create
+  - update
+  - patch
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: apps-editor
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name:  apps-editor
+subjects:
+- kind: Group
+  name: devs
+  apiGroup: rbac.authorization.k8s.io

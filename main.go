@@ -17,6 +17,7 @@ import (
 	"github.com/krateoplatformops/krateo-bff/internal/server/middlewares/cors"
 	"github.com/krateoplatformops/krateo-bff/internal/server/routes"
 	"github.com/krateoplatformops/krateo-bff/internal/server/routes/actions"
+	"github.com/krateoplatformops/krateo-bff/internal/server/routes/apps"
 	"github.com/krateoplatformops/krateo-bff/internal/server/routes/health"
 	"github.com/krateoplatformops/krateo-bff/internal/server/routes/layout/columns"
 	"github.com/krateoplatformops/krateo-bff/internal/server/routes/layout/rows"
@@ -123,6 +124,7 @@ func main() {
 	rows.Register(r, cfg, *authnNS)
 	verbs.Register(r, cfg)
 	actions.Register(r, cfg, *authnNS)
+	apps.Register(r, cfg, *authnNS)
 
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", *port),

@@ -50,6 +50,19 @@ func Error(w http.ResponseWriter, reason StatusReason, code int, err error) erro
 	return json.NewEncoder(w).Encode(&out)
 }
 
+func OK(w http.ResponseWriter, code int) error {
+	out := Status{
+		Kind:       "Status",
+		APIVersion: "v1",
+		Status:     StatusSuccess,
+		Code:       code,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(code)
+	return json.NewEncoder(w).Encode(&out)
+}
+
 // StatusReason is an enumeration of possible failure causes.  Each StatusReason
 // must map to a single HTTP status code, but multiple reasons may map
 // to the same HTTP status code.

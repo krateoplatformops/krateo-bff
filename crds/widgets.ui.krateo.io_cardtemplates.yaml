@@ -78,50 +78,8 @@ spec:
                   type: object
                 type: array
               app:
-                description: CardTemplateInfo is the card template info
+                description: App is the card template info
                 properties:
-                  actions:
-                    items:
-                      description: API contains external api call info.
-                      properties:
-                        dependOn:
-                          type: string
-                        endpointRef:
-                          description: A Reference to a named object.
-                          properties:
-                            name:
-                              description: Name of the referenced object.
-                              type: string
-                            namespace:
-                              description: Namespace of the referenced object.
-                              type: string
-                          required:
-                          - name
-                          - namespace
-                          type: object
-                        headers:
-                          items:
-                            type: string
-                          type: array
-                        krateoGateway:
-                          type: boolean
-                        name:
-                          type: string
-                        path:
-                          type: string
-                        payload:
-                          type: string
-                        verb:
-                          default: GET
-                          type: string
-                      required:
-                      - name
-                      type: object
-                    type: array
-                  allowedActions:
-                    items:
-                      type: string
-                    type: array
                   color:
                     type: string
                   content:
@@ -138,58 +96,40 @@ spec:
                 - content
                 - title
                 type: object
+              formTemplateRef:
+                properties:
+                  name:
+                    description: Name of the referenced object.
+                    type: string
+                  namespace:
+                    description: Namespace of the referenced object.
+                    type: string
+                required:
+                - name
+                type: object
               iterator:
                 type: string
             required:
             - app
+            - formTemplateRef
             type: object
           status:
             properties:
+              actions:
+                items:
+                  properties:
+                    path:
+                      type: string
+                    verb:
+                      default: GET
+                      type: string
+                  required:
+                  - path
+                  type: object
+                type: array
               content:
                 items:
                   properties:
-                    actions:
-                      items:
-                        description: API contains external api call info.
-                        properties:
-                          dependOn:
-                            type: string
-                          endpointRef:
-                            description: A Reference to a named object.
-                            properties:
-                              name:
-                                description: Name of the referenced object.
-                                type: string
-                              namespace:
-                                description: Namespace of the referenced object.
-                                type: string
-                            required:
-                            - name
-                            - namespace
-                            type: object
-                          headers:
-                            items:
-                              type: string
-                            type: array
-                          krateoGateway:
-                            type: boolean
-                          name:
-                            type: string
-                          path:
-                            type: string
-                          payload:
-                            type: string
-                          verb:
-                            default: GET
-                            type: string
-                        required:
-                        - name
-                        type: object
-                      type: array
-                    allowedActions:
-                      items:
-                        type: string
-                      type: array
                     color:
                       type: string
                     content:

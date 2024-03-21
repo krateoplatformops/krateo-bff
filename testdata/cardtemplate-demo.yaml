@@ -14,6 +14,8 @@ metadata:
   name: plain
   namespace: demo-system
 spec:
+  formTemplateRef:
+    name: fireworksapp
   app:
     color: red
     title: Lorem Ipsum
@@ -30,15 +32,11 @@ metadata:
   name: one
   namespace: demo-system
 spec:
+  formTemplateRef:
+    name: fireworksapp
   app:
     title: ${ .api2.items[0] | (.name  + " -> " + .email) }
     content: ${ .api2.items[0].body }
-    actions:
-    - name: view
-      endpointRef:
-        name: typicode-endpoint
-        namespace: demo-system
-      path: ${ "/todos/1/comments/" + (.api2.items[0].id|tostring) }
   api:
   - name: api1
     path: "/todos/1"
@@ -64,17 +62,13 @@ metadata:
   name: ten
   namespace: demo-system
 spec:
+  formTemplateRef:
+    name: fireworksapp
   iterator: .api2.items[:10]
   app:
     title: ${ .name }
     content: ${ .body }
     tags: ${ .email }
-    actions:
-    - name: view
-      endpointRef:
-        name: typicode-endpoint
-        namespace: demo-system
-      path: ${ "/todos/1/comments/" + (.id|tostring) }
   api:
   - name: api1
     path: "/todos/1"
@@ -100,17 +94,13 @@ metadata:
   name: all
   namespace: demo-system
 spec:
+  formTemplateRef:
+    name: fireworksapp
   iterator: .api2.items
   app:
     title: ${ .name }
     content: ${ .body }
     tags: ${ .email }
-    actions:
-    - name: view
-      endpointRef:
-        name: typicode-endpoint
-        namespace: demo-system
-      path: ${ "/todos/1/comments/" + (.id|tostring) }
   api:
   - name: api1
     path: "/todos/1"
@@ -136,17 +126,13 @@ metadata:
   name: three
   namespace: demo-system
 spec:
+  formTemplateRef:
+    name: fireworksapp
   iterator: .api2.items[:3]
   app:
     title: ${ .name }
     content: ${ .body }
     tags: ${ .email }
-    actions:
-    - name: view
-      endpointRef:
-        name: typicode-endpoint
-        namespace: demo-system
-      path: ${ "/todos/1/comments/" + (.id|tostring) }
   api:
   - name: api1
     path: "/todos/1"

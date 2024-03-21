@@ -168,12 +168,3 @@ func TestCardTemplateWithIterator(t *testing.T) {
 		t.Fatal(err)
 	}
 }
-
-func newRestConfig() (*rest.Config, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return nil, err
-	}
-
-	return clientcmd.BuildConfigFromFlags("", filepath.Join(home, ".kube", "config"))
-}

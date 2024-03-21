@@ -33,7 +33,7 @@ func NewClient(rc *rest.Config) (*Client, error) {
 }
 
 type Client struct {
-	dyn *dynamic.Getter
+	dyn dynamic.Getter
 	gvk schema.GroupVersionKind
 	ns  string
 }
@@ -44,21 +44,11 @@ func (c *Client) Namespace(ns string) *Client {
 }
 
 func (c *Client) Get(ctx context.Context, name string) (result *unstructured.Unstructured, err error) {
-	result, err = c.dyn.Get(ctx, dynamic.GetOptions{
-		GVK:       c.gvk,
-		Namespace: c.ns,
-		Name:      name,
-	})
-
-	return
+	return c.dyn.Get(ctx, name, c.ns, c.gvk)
 }
 
 func (c *Client) GVK(ctx context.Context, name string) (schema.GroupVersionKind, error) {
-	obj, err := c.dyn.Get(ctx, dynamic.GetOptions{
-		GVK:       c.gvk,
-		Namespace: c.ns,
-		Name:      name,
-	})
+	obj, err := c.dyn.Get(ctx, name, c.ns, c.gvk)
 	if err != nil {
 		return schema.GroupVersionKind{}, err
 	}
@@ -86,14 +76,14 @@ func (c *Client) GVK(ctx context.Context, name string) (schema.GroupVersionKind,
 }
 
 func (c *Client) OpenAPISchema(ctx context.Context, gkv schema.GroupVersionKind) (*unstructured.Unstructured, error) {
-	crd, err := c.Namespace("").dyn.Get(ctx, dynamic.GetOptions{
-		GVK: schema.GroupVersionKind{
+	name := dynamic.InferGroupResource(gkv.Group, gkv.Kind).String()
+
+	crd, err := c.dyn.Get(ctx, name, "",
+		schema.GroupVersionKind{
 			Group:   "apiextensions.k8s.io",
 			Version: "v1",
 			Kind:    "CustomResourceDefinition",
-		},
-		Name: dynamic.InferGroupResource(gkv.Group, gkv.Kind).String(),
-	})
+		})
 	if err != nil {
 		return nil, err
 	}

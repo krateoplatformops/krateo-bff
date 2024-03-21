@@ -15,7 +15,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-func TestGet(t *testing.T) {
+func TestGetter(t *testing.T) {
 	rc, err := newRestConfig()
 	if err != nil {
 		t.Fatal(err)
@@ -26,14 +26,14 @@ func TestGet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	obj, err := dyn.Get(context.TODO(), GetOptions{
-		GVK: schema.GroupVersionKind{
+	obj, err := dyn.Get(context.TODO(),
+		"formtemplates.widgets.ui.krateo.io",
+		"",
+		schema.GroupVersionKind{
 			Group:   "apiextensions.k8s.io",
 			Version: "v1",
 			Kind:    "CustomResourceDefinition",
-		},
-		Name: "formtemplates.widgets.ui.krateo.io",
-	})
+		})
 	if err != nil {
 		t.Fatal(err)
 	}

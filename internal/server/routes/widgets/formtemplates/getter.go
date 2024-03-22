@@ -3,20 +3,14 @@ package formtemplates
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
-	formtemplatesv1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/formtemplates/v1alpha1"
-	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/dynamic"
-	rbacutil "github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac/util"
-	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/schemadefinitions"
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/widgets/formtemplates"
 	"github.com/krateoplatformops/krateo-bff/internal/server/encode"
 	"github.com/rs/zerolog"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/rest"
 )
@@ -42,11 +36,10 @@ func newGetter(rc *rest.Config, authnNS string) (string, http.HandlerFunc) {
 var _ http.Handler = (*getter)(nil)
 
 type getter struct {
-	rc                *rest.Config
-	gr                schema.GroupResource
-	templatesClient   *formtemplates.Client
-	definitionsClient *schemadefinitions.Client
-	authnNS           string
+	rc              *rest.Config
+	gr              schema.GroupResource
+	templatesClient *formtemplates.Client
+	authnNS         string
 }
 
 func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
@@ -76,7 +69,12 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	obj, err := r.templatesClient.Namespace(namespace).Get(context.Background(), name)
+	obj, err := r.templatesClient.Get(context.Background(), formtemplates.GetOptions{
+		Name:      name,
+		Namespace: namespace,
+		Subject:   sub,
+		Orgs:      orgs,
+	})
 	if err != nil {
 		log.Err(err).Msg("unable to resolve form template")
 		if apierrors.IsNotFound(err) {
@@ -85,54 +83,6 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 			encode.Invalid(wri, err)
 		}
 		return
-	}
-
-	formGVK, err := r.definitionsClient.Namespace(obj.Spec.SchemaDefinitionRef.Namespace).
-		GVK(context.Background(), obj.Spec.SchemaDefinitionRef.Name)
-	if err != nil {
-		log.Err(err).Msg("unable to resolve form definition gvk")
-		if apierrors.IsNotFound(err) {
-			encode.NotFound(wri, err)
-		} else {
-			encode.Invalid(wri, err)
-		}
-		return
-	}
-
-	ok, err := rbacutil.CanListResource(context.TODO(), r.rc, rbacutil.ResourceInfo{
-		Subject:       sub,
-		Groups:        orgs,
-		GroupResource: dynamic.InferGroupResource(formGVK.Group, formGVK.Kind),
-		ResourceName:  name,
-		Namespace:     namespace,
-	})
-	if err != nil {
-		log.Err(err).Msg("checking if 'get' verb is allowed")
-		encode.InternalError(wri, err)
-		return
-	}
-
-	if !ok {
-		gr := dynamic.InferGroupResource(formGVK.Group, formGVK.Kind)
-		encode.Forbidden(wri,
-			fmt.Errorf("forbidden: User %q cannot get resource %q", sub, gr))
-		return
-	}
-
-	sch, err := r.definitionsClient.OpenAPISchema(context.Background(), formGVK)
-	if err != nil {
-		log.Err(err).
-			Str("gvk", formGVK.String()).
-			Str("object", obj.GetName()).
-			Msg("unable to resolve schema definition openAPI schema")
-
-		encode.Invalid(wri, err)
-		return
-	}
-
-	obj.Status.Content = &formtemplatesv1alpha1.FormTemplateStatusContent{
-		//Instance: &runtime.RawExtension{Object: vals},
-		Schema: &runtime.RawExtension{Object: sch},
 	}
 
 	wri.Header().Set("Content-Type", "application/json")
@@ -147,21 +97,15 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 
 func (r *getter) complete() error {
 	if r.templatesClient == nil {
-		cli, err := formtemplates.NewClient(r.rc)
+		cli, err := formtemplates.NewClient(r.rc,
+			formtemplates.AuthnNS(r.authnNS),
+			formtemplates.Eval(true),
+		)
 		if err != nil {
 			return err
 		}
 
 		r.templatesClient = cli
-	}
-
-	if r.definitionsClient == nil {
-		cli, err := schemadefinitions.NewClient(r.rc)
-		if err != nil {
-			return err
-		}
-
-		r.definitionsClient = cli
 	}
 
 	return nil

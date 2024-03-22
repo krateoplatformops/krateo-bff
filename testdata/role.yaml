@@ -8,7 +8,7 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: dev
-  namespace: dev-system
+  namespace: demo-system
 rules:
 - apiGroups:
   - widgets.ui.krateo.io

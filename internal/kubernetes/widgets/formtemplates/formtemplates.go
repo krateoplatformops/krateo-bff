@@ -2,184 +2,296 @@ package formtemplates
 
 import (
 	"context"
-	"time"
+	"fmt"
+	"net/url"
+	"strings"
 
-	"github.com/krateoplatformops/krateo-bff/apis"
 	"github.com/krateoplatformops/krateo-bff/apis/ui/formtemplates/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/dynamic"
+	rbacutil "github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac/util"
+	"github.com/krateoplatformops/krateo-bff/internal/strvals"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/rest"
 )
 
 const (
-	resourceName = "formtemplates"
-	listKind     = "FormTemplateList"
+	actionPathFmt         = "/apis/actions?%s"
+	openAPIV3SchemaFilter = `.spec.versions[] | select(.name="%s") | .schema.openAPIV3Schema`
 )
 
-func NewClient(rc *rest.Config) (*Client, error) {
-	s := runtime.NewScheme()
-	apis.AddToScheme(s)
+type ClientOption func(*Client)
 
-	config := *rc
-	config.APIPath = "/apis"
-	config.GroupVersion = &schema.GroupVersion{
-		Group: v1alpha1.Group, Version: v1alpha1.Version,
+func AuthnNS(s string) ClientOption {
+	return func(c *Client) {
+		c.authnNS = s
 	}
-	config.NegotiatedSerializer = serializer.NewCodecFactory(s).
-		WithoutConversion()
-	config.UserAgent = rest.DefaultKubernetesUserAgent()
+}
 
-	cli, err := rest.RESTClientFor(&config)
+func Eval(b bool) ClientOption {
+	return func(c *Client) {
+		c.eval = b
+	}
+}
+
+type SchemaDefinitionDeref struct {
+	group     string
+	version   string
+	resource  string
+	name      string
+	namespace string
+}
+
+func NewClient(rc *rest.Config, opts ...ClientOption) (*Client, error) {
+	dyn, err := dynamic.NewClient(rc)
 	if err != nil {
 		return nil, err
 	}
 
-	pc := runtime.NewParameterCodec(s)
+	c := &Client{
+		rc:  rc,
+		dyn: dyn,
+	}
 
-	return &Client{rc: cli, pc: pc}, nil
+	for _, opt := range opts {
+		opt(c)
+	}
+
+	return c, nil
 }
 
 type Client struct {
-	rc rest.Interface
-	pc runtime.ParameterCodec
-	ns string
+	rc      *rest.Config
+	dyn     dynamic.Client
+	authnNS string
+	eval    bool
 }
 
-func (c *Client) Namespace(ns string) *Client {
-	c.ns = ns
-	return c
+type GetOptions struct {
+	Name      string
+	Namespace string
+	Subject   string
+	Orgs      []string
 }
 
-func (c *Client) Get(ctx context.Context, name string) (result *v1alpha1.FormTemplate, err error) {
-	result = &v1alpha1.FormTemplate{}
-	err = c.rc.Get().
-		Namespace(c.ns).
-		Resource(resourceName).
-		Name(name).
-		Do(ctx).
-		Into(result)
-	// issue: https://github.com/kubernetes/client-go/issues/541
-	result.SetGroupVersionKind(v1alpha1.FormTemplateGroupVersionKind)
-	return
-}
-
-func (c *Client) List(ctx context.Context, opts metav1.ListOptions) (result *v1alpha1.FormTemplateList, err error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+func (c *Client) Get(ctx context.Context, opts GetOptions) (*v1alpha1.FormTemplate, error) {
+	uns, err := c.dyn.Get(ctx, opts.Name, dynamic.Options{
+		Namespace: opts.Namespace,
+		GVK:       v1alpha1.FormTemplateGroupVersionKind,
+	})
+	if err != nil {
+		return nil, err
 	}
-	result = &v1alpha1.FormTemplateList{}
-	err = c.rc.Get().
-		Namespace(c.ns).
-		Resource(resourceName).
-		VersionedParams(&opts, c.pc).
-		Timeout(timeout).
-		Do(ctx).
-		Into(result)
 
-	result.SetGroupVersionKind(v1alpha1.SchemeGroupVersion.WithKind(listKind))
-	return
-}
-
-func (c *Client) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	obj := &v1alpha1.FormTemplate{}
+	err = c.dyn.Convert(uns.UnstructuredContent(), obj)
+	if err != nil {
+		return nil, err
 	}
-	opts.Watch = true
-	return c.rc.Get().
-		Namespace(c.ns).
-		Resource(resourceName).
-		VersionedParams(&opts, c.pc).
-		Timeout(timeout).
-		Watch(ctx)
-}
 
-func (c *Client) Create(ctx context.Context, obj *v1alpha1.FormTemplate, opts metav1.CreateOptions) (result *v1alpha1.FormTemplate, err error) {
-	result = &v1alpha1.FormTemplate{}
-	err = c.rc.Post().
-		Namespace(c.ns).
-		Resource(resourceName).
-		VersionedParams(&opts, c.pc).
-		Body(obj).
-		Do(ctx).
-		Into(result)
-	// issue: https://github.com/kubernetes/client-go/issues/541
-	result.SetGroupVersionKind(v1alpha1.FormTemplateGroupVersionKind)
-	return
-}
-
-func (c *Client) Update(ctx context.Context, obj *v1alpha1.FormTemplate, opts metav1.UpdateOptions) (result *v1alpha1.FormTemplate, err error) {
-	result = &v1alpha1.FormTemplate{}
-	err = c.rc.Put().
-		Namespace(c.ns).
-		Resource(resourceName).
-		Name(obj.Name).
-		VersionedParams(&opts, c.pc).
-		Body(obj).
-		Do(ctx).
-		Into(result)
-	// issue: https://github.com/kubernetes/client-go/issues/541
-	result.SetGroupVersionKind(v1alpha1.FormTemplateGroupVersionKind)
-	return
-}
-
-func (c *Client) UpdateStatus(ctx context.Context, obj *v1alpha1.FormTemplate) (result *v1alpha1.FormTemplate, err error) {
-	result = &v1alpha1.FormTemplate{}
-	err = c.rc.Put().
-		Namespace(c.ns).
-		Resource(resourceName).
-		Name(obj.Name).
-		SubResource("status").
-		Body(obj).
-		Do(ctx).
-		Into(result)
-	// issue: https://github.com/kubernetes/client-go/issues/541
-	result.SetGroupVersionKind(v1alpha1.FormTemplateGroupVersionKind)
-	return
-}
-
-func (c *Client) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
-	return c.rc.Delete().
-		Namespace(c.ns).
-		Resource(resourceName).
-		Name(name).
-		Body(&opts).
-		Do(ctx).
-		Error()
-}
-
-func (c *Client) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
-	var timeout time.Duration
-	if listOpts.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
+	if len(obj.Spec.SchemaDefinitionRef.Namespace) == 0 {
+		obj.Spec.SchemaDefinitionRef.Namespace = opts.Namespace
 	}
-	return c.rc.Delete().
-		Namespace(c.ns).
-		Resource(resourceName).
-		VersionedParams(&listOpts, c.pc).
-		Timeout(timeout).
-		Body(&opts).
-		Do(ctx).
-		Error()
+
+	if c.eval {
+		err = c.doEval(ctx, obj, opts.Subject, opts.Orgs)
+	}
+
+	return obj, err
 }
 
-func (c *Client) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1alpha1.FormTemplate, err error) {
-	result = &v1alpha1.FormTemplate{}
-	err = c.rc.Patch(pt).
-		Namespace(c.ns).
-		Resource(resourceName).
-		Name(name).
-		SubResource(subresources...).
-		VersionedParams(&opts, c.pc).
-		Body(data).
-		Do(ctx).
-		Into(result)
-	// issue: https://github.com/kubernetes/client-go/issues/541
-	result.SetGroupVersionKind(v1alpha1.FormTemplateGroupVersionKind)
-	return
+type ListOptions struct {
+	Namespace string
+	Subject   string
+	Orgs      []string
+}
+
+func (c *Client) List(ctx context.Context, opts ListOptions) (*v1alpha1.FormTemplateList, error) {
+	uns, err := c.dyn.List(ctx, dynamic.Options{
+		Namespace: opts.Namespace,
+		GVK:       v1alpha1.FormTemplateGroupVersionKind,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	all := &v1alpha1.FormTemplateList{}
+	err = c.dyn.Convert(uns.UnstructuredContent(), all)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range all.Items {
+		if len(all.Items[i].Spec.SchemaDefinitionRef.Namespace) == 0 {
+			all.Items[i].Spec.SchemaDefinitionRef.Namespace = opts.Namespace
+		}
+
+		if c.eval {
+			err = c.doEval(ctx, &all.Items[i], opts.Subject, opts.Orgs)
+			if err != nil {
+				return all, err
+			}
+		}
+	}
+
+	return all, nil
+}
+
+type DeleteOptions struct {
+	Name      string
+	Namespace string
+}
+
+func (c *Client) Delete(ctx context.Context, opts DeleteOptions) error {
+	return c.dyn.Delete(ctx, opts.Name, dynamic.Options{
+		Namespace: opts.Namespace,
+		GVK:       v1alpha1.FormTemplateGroupVersionKind,
+	})
+}
+
+func (c *Client) doEval(ctx context.Context, in *v1alpha1.FormTemplate, sub string, orgs []string) error {
+	ref, err := c.resolveSchemaDefinitionRef(ctx, in)
+	if err != nil {
+		return err
+	}
+
+	err = c.createActions(ctx, in, sub, orgs, ref)
+	if err != nil {
+		return err
+	}
+
+	sch, err := c.openAPISchema(ctx, ref)
+	if err != nil {
+		return err
+	}
+
+	in.Status.Content = &v1alpha1.FormTemplateStatusContent{
+		//Instance: &runtime.RawExtension{Object: vals},
+		Schema: &runtime.RawExtension{Object: sch},
+	}
+
+	return nil
+}
+
+func (c *Client) createActions(ctx context.Context, in *v1alpha1.FormTemplate, sub string, orgs []string, ref *SchemaDefinitionDeref) error {
+	if in.Status.Actions == nil {
+		in.Status.Actions = []*v1alpha1.Action{}
+	}
+
+	ok, err := rbacutil.CanCreateOrUpdateResource(ctx, c.rc,
+		rbacutil.ResourceInfo{
+			Subject:       sub,
+			Groups:        orgs,
+			GroupResource: schema.ParseGroupResource(fmt.Sprintf("%s.%s", ref.resource, ref.group)),
+			ResourceName:  ref.name,
+			Namespace:     ref.namespace,
+		})
+	if err != nil {
+		return err
+	}
+	if ok {
+		qs := url.Values{}
+		qs.Set("group", ref.group)
+		qs.Set("version", ref.version)
+		qs.Set("plural", ref.resource)
+		qs.Set("sub", sub)
+		qs.Set("orgs", strings.Join(orgs, ","))
+		qs.Set("name", ref.name)
+		qs.Set("namespace", ref.namespace)
+
+		in.Status.Actions = append(in.Status.Actions, &v1alpha1.Action{
+			Verb: "create",
+			Path: fmt.Sprintf(actionPathFmt, qs.Encode()),
+		})
+	}
+
+	return nil
+}
+
+func (c *Client) resolveSchemaDefinitionRef(ctx context.Context, in *v1alpha1.FormTemplate) (*SchemaDefinitionDeref, error) {
+	name := in.Spec.SchemaDefinitionRef.Name
+	namespace := in.Spec.SchemaDefinitionRef.Namespace
+
+	uns, err := c.dyn.Get(ctx, name, dynamic.Options{
+		Namespace: namespace,
+		GVK:       schema.FromAPIVersionAndKind("core.krateo.io/v1alpha1", "SchemaDefinition"),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	schemaSpec, ok, _ := unstructured.NestedMap(uns.UnstructuredContent(), "spec", "schema")
+	if !ok {
+		return nil,
+			fmt.Errorf("unable to resolve 'schema.spec' for: %s.%s/%s @ %s",
+				uns.GetName(), uns.GetAPIVersion(), uns.GetKind(), uns.GetNamespace())
+	}
+
+	version, ok, _ := unstructured.NestedString(schemaSpec, "version")
+	if !ok {
+		return nil,
+			fmt.Errorf("unable to resolve 'schema.spec.version' for: %s.%s/%s @ %s",
+				uns.GetName(), uns.GetAPIVersion(), uns.GetKind(), uns.GetNamespace())
+	}
+	kind, ok, _ := unstructured.NestedString(schemaSpec, "kind")
+	if !ok {
+		return nil,
+			fmt.Errorf("unable to resolve 'schema.spec.kind' for: %s.%s/%s @ %s",
+				uns.GetName(), uns.GetAPIVersion(), uns.GetKind(), uns.GetNamespace())
+	}
+
+	gv := schema.GroupVersion{Group: "apps.krateo.io", Version: version}
+	gr := dynamic.InferGroupResource(gv.Group, kind)
+
+	return &SchemaDefinitionDeref{
+		group: gv.Group, version: version, resource: gr.Resource,
+		name: name, namespace: namespace,
+	}, nil
+}
+
+func (c *Client) openAPISchema(ctx context.Context, ref *SchemaDefinitionDeref) (*unstructured.Unstructured, error) {
+	gr := schema.GroupResource{Group: ref.group, Resource: ref.resource}
+
+	crd, err := c.dyn.Get(ctx, gr.String(), dynamic.Options{
+		Namespace: "",
+		GVK: schema.GroupVersionKind{
+			Group:   "apiextensions.k8s.io",
+			Version: "v1",
+			Kind:    "CustomResourceDefinition",
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	filter := fmt.Sprintf(openAPIV3SchemaFilter, ref.version)
+	sch, err := dynamic.Extract(ctx, crd, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	dict, ok := sch.(map[string]any)
+	if !ok {
+		return nil, fmt.Errorf("expecting 'map[string]any', got: %T", sch)
+	}
+
+	err = injectMetadata(dict)
+	return &unstructured.Unstructured{
+		Object: sch.(map[string]any),
+	}, err
+}
+
+func injectMetadata(in map[string]any) error {
+	lines := []string{
+		"properties.metadata.type=object",
+		"properties.metadata.properties.name.type=string",
+		"properties.metadata.properties.namespace.type=string",
+		"properties.metadata.properties.namespace.type=string",
+		"properties.metadata.required={name,namespace}",
+	}
+
+	metadata := strings.Join(lines, ",")
+
+	return strvals.ParseInto(metadata, in)
 }

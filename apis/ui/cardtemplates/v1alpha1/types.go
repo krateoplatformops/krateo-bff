@@ -40,9 +40,6 @@ type Card struct {
 
 	// +optional
 	Tags string `json:"tags,omitempty"`
-
-	// +optional
-	// AllowedActions []string `json:"allowedActions,omitempty"`
 }
 
 // CardTemplate is a template for a Krateo UI Card widget.

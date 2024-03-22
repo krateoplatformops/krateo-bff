@@ -28,3 +28,6 @@ subjects:
 - kind: Group
   name: admins
   apiGroup: rbac.authorization.k8s.io
+- kind: Group
+  name: devs
+  apiGroup: rbac.authorization.k8s.io

@@ -19,6 +19,15 @@ func (di *DataItem) String() string {
 		strings.TrimSpace(di.Path), strings.TrimSpace(di.Value))
 }
 
+type Action struct {
+	//+kubebuilder:validation:Required
+	Path string `json:"path"`
+
+	// +optional
+	// +kubebuilder:default=GET
+	Verb string `json:"verb,omitempty"`
+}
+
 type FormTemplateSpec struct {
 	SchemaDefinitionRef *core.Reference `json:"schemaDefinitionRef"`
 }
@@ -33,6 +42,7 @@ type FormTemplateStatusContent struct {
 
 type FormTemplateStatus struct {
 	Content *FormTemplateStatusContent `json:"content,omitempty"`
+	Actions []*Action                  `json:"actions,omitempty"`
 }
 
 // +kubebuilder:object:root=true

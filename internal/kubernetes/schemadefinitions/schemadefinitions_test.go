@@ -15,10 +15,6 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-const (
-	namespace = "demo-system"
-)
-
 func TestGet(t *testing.T) {
 	cfg, err := newRestConfig()
 	if err != nil {
@@ -30,7 +26,7 @@ func TestGet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	res, err := cli.Namespace(namespace).Get(context.TODO(), "fireworksapp")
+	res, err := cli.Get(context.TODO(), "fireworksapp", "demo-system")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -53,7 +49,7 @@ func TestGVK(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	res, err := cli.Namespace(namespace).GVK(context.TODO(), "fireworksapp")
+	res, err := cli.GVK(context.TODO(), "fireworksapp", "demo-system")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +72,7 @@ func TestOpenAPISchema(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	gvk, err := cli.Namespace(namespace).GVK(context.TODO(), "fireworksapp")
+	gvk, err := cli.GVK(context.TODO(), "fireworksapp", "demo-system")
 	if err != nil {
 		t.Fatal(err)
 	}

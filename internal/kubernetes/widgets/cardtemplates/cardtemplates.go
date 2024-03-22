@@ -2,184 +2,360 @@ package cardtemplates
 
 import (
 	"context"
-	"time"
+	"fmt"
+	"net/url"
+	"strconv"
+	"strings"
 
-	"github.com/krateoplatformops/krateo-bff/apis"
 	"github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplates/v1alpha1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	formtemplatesv1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/formtemplates/v1alpha1"
+	"github.com/krateoplatformops/krateo-bff/internal/api/batch"
+	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/dynamic"
+	rbacutil "github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac/util"
+	"github.com/krateoplatformops/krateo-bff/internal/tmpl"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/rest"
+	"k8s.io/utils/ptr"
 )
 
 const (
-	resourceName = "cardtemplates"
-	listKind     = "CardTemplateList"
+	actionPathFmt = "/apis/actions?%s"
 )
 
-func NewClient(rc *rest.Config) (*Client, error) {
-	s := runtime.NewScheme()
-	apis.AddToScheme(s)
+type ClientOption func(*Client)
 
-	config := *rc
-	config.APIPath = "/apis"
-	config.GroupVersion = &schema.GroupVersion{
-		Group: v1alpha1.Group, Version: v1alpha1.Version,
+func AuthnNS(s string) ClientOption {
+	return func(c *Client) {
+		c.authnNS = s
 	}
-	config.NegotiatedSerializer = serializer.NewCodecFactory(s).
-		WithoutConversion()
-	config.UserAgent = rest.DefaultKubernetesUserAgent()
+}
 
-	cli, err := rest.RESTClientFor(&config)
+func Eval(b bool) ClientOption {
+	return func(c *Client) {
+		c.eval = b
+	}
+}
+
+type FormTemplateDeref struct {
+	group     string
+	version   string
+	resource  string
+	name      string
+	namespace string
+}
+
+func NewClient(rc *rest.Config, opts ...ClientOption) (*Client, error) {
+	dyn, err := dynamic.NewClient(rc)
 	if err != nil {
 		return nil, err
 	}
 
-	pc := runtime.NewParameterCodec(s)
+	tpl, err := tmpl.New("${", "}")
+	if err != nil {
+		return nil, err
+	}
 
-	return &Client{rc: cli, pc: pc}, nil
+	c := &Client{
+		rc:  rc,
+		dyn: dyn,
+		tpl: tpl,
+	}
+
+	for _, opt := range opts {
+		opt(c)
+	}
+
+	return c, nil
 }
 
 type Client struct {
-	rc rest.Interface
-	pc runtime.ParameterCodec
-	ns string
+	rc      *rest.Config
+	dyn     dynamic.Client
+	tpl     tmpl.JQTemplate
+	authnNS string
+	eval    bool
 }
 
-func (c *Client) Namespace(ns string) *Client {
-	c.ns = ns
-	return c
+type GetOptions struct {
+	Name      string
+	Namespace string
+	Subject   string
+	Orgs      []string
 }
 
-func (c *Client) Get(ctx context.Context, name string) (result *v1alpha1.CardTemplate, err error) {
-	result = &v1alpha1.CardTemplate{}
-	err = c.rc.Get().
-		Namespace(c.ns).
-		Resource(resourceName).
-		Name(name).
-		Do(ctx).
-		Into(result)
-	// issue: https://github.com/kubernetes/client-go/issues/541
-	result.SetGroupVersionKind(v1alpha1.CardTemplateGroupVersionKind)
-	return
-}
-
-func (c *Client) List(ctx context.Context, opts metav1.ListOptions) (result *v1alpha1.CardTemplateList, err error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+func (c *Client) Get(ctx context.Context, opts GetOptions) (*v1alpha1.CardTemplate, error) {
+	uns, err := c.dyn.Get(ctx, opts.Name, dynamic.Options{
+		Namespace: opts.Namespace,
+		GVK:       v1alpha1.CardTemplateGroupVersionKind,
+	})
+	if err != nil {
+		return nil, err
 	}
-	result = &v1alpha1.CardTemplateList{}
-	err = c.rc.Get().
-		Namespace(c.ns).
-		Resource(resourceName).
-		VersionedParams(&opts, c.pc).
-		Timeout(timeout).
-		Do(ctx).
-		Into(result)
 
-	result.SetGroupVersionKind(v1alpha1.SchemeGroupVersion.WithKind(listKind))
-	return
-}
-
-func (c *Client) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	obj := &v1alpha1.CardTemplate{}
+	err = c.dyn.Convert(uns.UnstructuredContent(), obj)
+	if err != nil {
+		return nil, err
 	}
-	opts.Watch = true
-	return c.rc.Get().
-		Namespace(c.ns).
-		Resource(resourceName).
-		VersionedParams(&opts, c.pc).
-		Timeout(timeout).
-		Watch(ctx)
-}
 
-func (c *Client) Create(ctx context.Context, obj *v1alpha1.CardTemplate, opts metav1.CreateOptions) (result *v1alpha1.CardTemplate, err error) {
-	result = &v1alpha1.CardTemplate{}
-	err = c.rc.Post().
-		Namespace(c.ns).
-		Resource(resourceName).
-		VersionedParams(&opts, c.pc).
-		Body(obj).
-		Do(ctx).
-		Into(result)
-	// issue: https://github.com/kubernetes/client-go/issues/541
-	result.SetGroupVersionKind(v1alpha1.CardTemplateGroupVersionKind)
-	return
-}
-
-func (c *Client) Update(ctx context.Context, obj *v1alpha1.CardTemplate, opts metav1.UpdateOptions) (result *v1alpha1.CardTemplate, err error) {
-	result = &v1alpha1.CardTemplate{}
-	err = c.rc.Put().
-		Namespace(c.ns).
-		Resource(resourceName).
-		Name(obj.Name).
-		VersionedParams(&opts, c.pc).
-		Body(obj).
-		Do(ctx).
-		Into(result)
-	// issue: https://github.com/kubernetes/client-go/issues/541
-	result.SetGroupVersionKind(v1alpha1.CardTemplateGroupVersionKind)
-	return
-}
-
-func (c *Client) UpdateStatus(ctx context.Context, obj *v1alpha1.CardTemplate) (result *v1alpha1.CardTemplate, err error) {
-	result = &v1alpha1.CardTemplate{}
-	err = c.rc.Put().
-		Namespace(c.ns).
-		Resource(resourceName).
-		Name(obj.Name).
-		SubResource("status").
-		Body(obj).
-		Do(ctx).
-		Into(result)
-	// issue: https://github.com/kubernetes/client-go/issues/541
-	result.SetGroupVersionKind(v1alpha1.CardTemplateGroupVersionKind)
-	return
-}
-
-func (c *Client) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
-	return c.rc.Delete().
-		Namespace(c.ns).
-		Resource(resourceName).
-		Name(name).
-		Body(&opts).
-		Do(ctx).
-		Error()
-}
-
-func (c *Client) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
-	var timeout time.Duration
-	if listOpts.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
+	if len(obj.Spec.FormTemplateRef.Namespace) == 0 {
+		obj.Spec.FormTemplateRef.Namespace = opts.Namespace
 	}
-	return c.rc.Delete().
-		Namespace(c.ns).
-		Resource(resourceName).
-		VersionedParams(&listOpts, c.pc).
-		Timeout(timeout).
-		Body(&opts).
-		Do(ctx).
-		Error()
+
+	if c.eval {
+		err = c.evalTemplate(ctx, obj, opts.Subject)
+		if err == nil {
+			err = c.createActions(ctx, obj, opts.Subject, opts.Orgs)
+		}
+	}
+
+	return obj, err
 }
 
-func (c *Client) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1alpha1.CardTemplate, err error) {
-	result = &v1alpha1.CardTemplate{}
-	err = c.rc.Patch(pt).
-		Namespace(c.ns).
-		Resource(resourceName).
-		Name(name).
-		SubResource(subresources...).
-		VersionedParams(&opts, c.pc).
-		Body(data).
-		Do(ctx).
-		Into(result)
-	// issue: https://github.com/kubernetes/client-go/issues/541
-	result.SetGroupVersionKind(v1alpha1.CardTemplateGroupVersionKind)
-	return
+type ListOptions struct {
+	Namespace string
+	Subject   string
+	Orgs      []string
+}
+
+func (c *Client) List(ctx context.Context, opts ListOptions) (*v1alpha1.CardTemplateList, error) {
+	uns, err := c.dyn.List(ctx, dynamic.Options{
+		Namespace: opts.Namespace,
+		GVK:       v1alpha1.CardTemplateGroupVersionKind,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	all := &v1alpha1.CardTemplateList{}
+	err = c.dyn.Convert(uns.UnstructuredContent(), all)
+	if err != nil {
+		return nil, err
+	}
+
+	for i := range all.Items {
+		if len(all.Items[i].Spec.FormTemplateRef.Namespace) == 0 {
+			all.Items[i].Spec.FormTemplateRef.Namespace = opts.Namespace
+		}
+
+		if c.eval {
+			err := c.evalTemplate(ctx, &all.Items[i], opts.Subject)
+			if err != nil {
+				return all, err
+			}
+
+			err = c.createActions(ctx, &all.Items[i], opts.Subject, opts.Orgs)
+			if err != nil {
+				return all, err
+			}
+		}
+	}
+
+	return all, nil
+}
+
+type DeleteOptions struct {
+	Name      string
+	Namespace string
+}
+
+func (c *Client) Delete(ctx context.Context, opts DeleteOptions) error {
+	return c.dyn.Delete(ctx, opts.Name, dynamic.Options{
+		Namespace: opts.Namespace,
+		GVK:       v1alpha1.CardTemplateGroupVersionKind,
+	})
+}
+
+func (c *Client) createActions(ctx context.Context, in *v1alpha1.CardTemplate, sub string, orgs []string) error {
+	if in.Status.Actions == nil {
+		in.Status.Actions = []*v1alpha1.Action{}
+	}
+
+	ok, err := rbacutil.CanDeleteResource(ctx, c.rc,
+		rbacutil.ResourceInfo{
+			Subject: sub,
+			Groups:  orgs,
+			GroupResource: schema.GroupResource{
+				Group: v1alpha1.Group, Resource: "cardtemplates",
+			},
+			ResourceName: in.GetName(),
+			Namespace:    in.GetNamespace(),
+		})
+	if err != nil {
+		return err
+	}
+	if ok {
+		qs := url.Values{}
+		qs.Set("group", v1alpha1.Group)
+		qs.Set("version", "v1alpha1")
+		qs.Set("plural", "cardtemplates")
+		qs.Set("sub", sub)
+		qs.Set("orgs", strings.Join(orgs, ","))
+		qs.Set("name", in.Name)
+		qs.Set("namespace", in.Namespace)
+
+		in.Status.Actions = append(in.Status.Actions, &v1alpha1.Action{
+			Verb: "delete",
+			Path: fmt.Sprintf(actionPathFmt, qs.Encode()),
+		})
+	}
+
+	ref, err := c.resolveFormTemplateRef(ctx, in)
+	if err != nil {
+		return err
+	}
+
+	ok, err = rbacutil.CanListResource(ctx, c.rc,
+		rbacutil.ResourceInfo{
+			Subject:       sub,
+			Groups:        orgs,
+			GroupResource: schema.ParseGroupResource(fmt.Sprintf("%s.%s", ref.resource, ref.group)),
+			ResourceName:  ref.name,
+			Namespace:     ref.namespace,
+		})
+	if err != nil {
+		return err
+	}
+	if ok {
+		qs := url.Values{}
+		qs.Set("group", ref.group)
+		qs.Set("version", ref.version)
+		qs.Set("plural", ref.resource)
+		qs.Set("sub", sub)
+		qs.Set("orgs", strings.Join(orgs, ","))
+		qs.Set("name", ref.name)
+		qs.Set("namespace", ref.namespace)
+
+		in.Status.Actions = append(in.Status.Actions, &v1alpha1.Action{
+			Verb: "get",
+			Path: fmt.Sprintf(actionPathFmt, qs.Encode()),
+		})
+	}
+
+	return nil
+}
+
+func (c *Client) resolveFormTemplateRef(ctx context.Context, in *v1alpha1.CardTemplate) (*FormTemplateDeref, error) {
+	uns, err := c.dyn.Get(ctx, in.Spec.FormTemplateRef.Name, dynamic.Options{
+		Namespace: in.Spec.FormTemplateRef.Namespace,
+		GVK:       formtemplatesv1alpha1.FormTemplateGroupVersionKind,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	schemaDefinitionRef, ok, _ := unstructured.NestedMap(uns.UnstructuredContent(), "spec", "schemaDefinitionRef")
+	if !ok {
+		return nil, fmt.Errorf("unable to resolve 'schemaDefinitionRef'")
+	}
+
+	name, ok, _ := unstructured.NestedString(schemaDefinitionRef, "name")
+	if !ok {
+		return nil, fmt.Errorf("unable to resolve 'schemaDefinitionRef.name'")
+	}
+	namespace, ok, _ := unstructured.NestedString(schemaDefinitionRef, "namespace")
+	if !ok {
+		return nil, fmt.Errorf("unable to resolve 'schemaDefinitionRef.namespace'")
+	}
+
+	uns, err = c.dyn.Get(ctx, name, dynamic.Options{
+		Namespace: namespace,
+		GVK:       schema.FromAPIVersionAndKind("core.krateo.io/v1alpha1", "SchemaDefinition"),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	schemaSpec, ok, _ := unstructured.NestedMap(uns.UnstructuredContent(), "spec", "schema")
+	if !ok {
+		return nil,
+			fmt.Errorf("unable to resolve 'schema.spec' for: %s.%s/%s @ %s",
+				uns.GetName(), uns.GetAPIVersion(), uns.GetKind(), uns.GetNamespace())
+	}
+
+	version, ok, _ := unstructured.NestedString(schemaSpec, "version")
+	if !ok {
+		return nil,
+			fmt.Errorf("unable to resolve 'schema.spec.version' for: %s.%s/%s @ %s",
+				uns.GetName(), uns.GetAPIVersion(), uns.GetKind(), uns.GetNamespace())
+	}
+	kind, ok, _ := unstructured.NestedString(schemaSpec, "kind")
+	if !ok {
+		return nil,
+			fmt.Errorf("unable to resolve 'schema.spec.kind' for: %s.%s/%s @ %s",
+				uns.GetName(), uns.GetAPIVersion(), uns.GetKind(), uns.GetNamespace())
+	}
+
+	gv := schema.GroupVersion{Group: "apps.krateo.io", Version: version}
+	gr := dynamic.InferGroupResource(gv.Group, kind)
+
+	return &FormTemplateDeref{
+		group: gv.Group, version: version, resource: gr.Resource,
+		name: name, namespace: namespace,
+	}, nil
+}
+
+func (c *Client) evalTemplate(ctx context.Context, in *v1alpha1.CardTemplate, sub string) error {
+	dict, err := batch.Call(ctx, batch.CallOptions{
+		RESTConfig: c.rc,
+		Tpl:        c.tpl,
+		ApiList:    in.Spec.APIList,
+		AuthnNS:    c.authnNS,
+		Subject:    sub,
+	})
+	if err != nil {
+		return err
+	}
+
+	tot := 1
+	it := ptr.Deref(in.Spec.Iterator, "")
+	if len(it) > 0 {
+		len, err := c.tpl.Execute(fmt.Sprintf("${ %s | length }", it), dict)
+		if err != nil {
+			return err
+		}
+		tot, err = strconv.Atoi(len)
+		if err != nil {
+			return err
+		}
+	}
+
+	in.Status.Cards = make([]*v1alpha1.Card, tot)
+	for i := 0; i < tot; i++ {
+		in.Status.Cards[i] = c.renderCard(&in.Spec, dict, i)
+	}
+
+	return nil
+}
+
+func (c *Client) renderCard(spec *v1alpha1.CardTemplateSpec, ds map[string]any, idx int) *v1alpha1.Card {
+	it := ptr.Deref(spec.Iterator, "")
+
+	hackQueryFn := func(q string) string {
+		if len(it) == 0 {
+			return q
+		}
+
+		el := fmt.Sprintf("%s[%d]", it, idx)
+		q = strings.Replace(q, "${", fmt.Sprintf("${ %s | ", el), 1)
+		return q
+	}
+
+	render := func(s string, ds map[string]any) string {
+		out, err := c.tpl.Execute(hackQueryFn(s), ds)
+		if err != nil {
+			out = err.Error()
+		}
+		return out
+	}
+
+	return &v1alpha1.Card{
+		Title:   render(spec.App.Title, ds),
+		Content: render(spec.App.Content, ds),
+		Icon:    render(spec.App.Icon, ds),
+		Color:   render(spec.App.Color, ds),
+		Date:    render(spec.App.Date, ds),
+		Tags:    render(spec.App.Tags, ds),
+	}
 }

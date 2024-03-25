@@ -23,20 +23,6 @@ const (
 	actionPathFmt = "/apis/actions?%s"
 )
 
-type ClientOption func(*Client)
-
-func AuthnNS(s string) ClientOption {
-	return func(c *Client) {
-		c.authnNS = s
-	}
-}
-
-func Eval(b bool) ClientOption {
-	return func(c *Client) {
-		c.eval = b
-	}
-}
-
 type FormTemplateDeref struct {
 	group     string
 	version   string
@@ -45,7 +31,7 @@ type FormTemplateDeref struct {
 	namespace string
 }
 
-func NewClient(rc *rest.Config, opts ...ClientOption) (*Client, error) {
+func NewClient(rc *rest.Config, eval bool) (*Client, error) {
 	dyn, err := dynamic.NewClient(rc)
 	if err != nil {
 		return nil, err
@@ -57,24 +43,20 @@ func NewClient(rc *rest.Config, opts ...ClientOption) (*Client, error) {
 	}
 
 	c := &Client{
-		rc:  rc,
-		dyn: dyn,
-		tpl: tpl,
-	}
-
-	for _, opt := range opts {
-		opt(c)
+		rc:   rc,
+		dyn:  dyn,
+		tpl:  tpl,
+		eval: eval,
 	}
 
 	return c, nil
 }
 
 type Client struct {
-	rc      *rest.Config
-	dyn     dynamic.Client
-	tpl     tmpl.JQTemplate
-	authnNS string
-	eval    bool
+	rc   *rest.Config
+	dyn  dynamic.Client
+	tpl  tmpl.JQTemplate
+	eval bool
 }
 
 type GetOptions struct {
@@ -82,6 +64,7 @@ type GetOptions struct {
 	Namespace string
 	Subject   string
 	Orgs      []string
+	AuthnNS   string
 }
 
 func (c *Client) Get(ctx context.Context, opts GetOptions) (*v1alpha1.CardTemplate, error) {
@@ -104,7 +87,7 @@ func (c *Client) Get(ctx context.Context, opts GetOptions) (*v1alpha1.CardTempla
 	}
 
 	if c.eval {
-		err = c.evalTemplate(ctx, obj, opts.Subject)
+		err = c.evalTemplate(ctx, obj, opts.Subject, opts.AuthnNS)
 		if err == nil {
 			err = c.createActions(ctx, obj, opts.Subject, opts.Orgs)
 		}
@@ -116,6 +99,7 @@ func (c *Client) Get(ctx context.Context, opts GetOptions) (*v1alpha1.CardTempla
 type ListOptions struct {
 	Namespace string
 	Subject   string
+	AuthnNS   string
 	Orgs      []string
 }
 
@@ -140,7 +124,7 @@ func (c *Client) List(ctx context.Context, opts ListOptions) (*v1alpha1.CardTemp
 		}
 
 		if c.eval {
-			err := c.evalTemplate(ctx, &all.Items[i], opts.Subject)
+			err := c.evalTemplate(ctx, &all.Items[i], opts.Subject, opts.AuthnNS)
 			if err != nil {
 				return all, err
 			}
@@ -296,12 +280,12 @@ func (c *Client) resolveFormTemplateRef(ctx context.Context, in *v1alpha1.CardTe
 	}, nil
 }
 
-func (c *Client) evalTemplate(ctx context.Context, in *v1alpha1.CardTemplate, sub string) error {
+func (c *Client) evalTemplate(ctx context.Context, in *v1alpha1.CardTemplate, sub string, authnNS string) error {
 	dict, err := batch.Call(ctx, batch.CallOptions{
 		RESTConfig: c.rc,
 		Tpl:        c.tpl,
 		ApiList:    in.Spec.APIList,
-		AuthnNS:    c.authnNS,
+		AuthnNS:    authnNS,
 		Subject:    sub,
 	})
 	if err != nil {

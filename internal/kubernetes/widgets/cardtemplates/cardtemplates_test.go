@@ -21,7 +21,7 @@ func TestGet(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cli, err := cardtemplates.NewClient(rc, cardtemplates.Eval(true))
+	cli, err := cardtemplates.NewClient(rc, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,6 +31,7 @@ func TestGet(t *testing.T) {
 		Name:      "one",
 		Subject:   "cyberjoker",
 		Orgs:      []string{"devs"},
+		AuthnNS:   "",
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -45,7 +46,7 @@ func TestList(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cli, err := cardtemplates.NewClient(rc, cardtemplates.Eval(true))
+	cli, err := cardtemplates.NewClient(rc, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -54,6 +55,7 @@ func TestList(t *testing.T) {
 		Namespace: "demo-system",
 		Subject:   "cyberjoker",
 		Orgs:      []string{"devs"},
+		AuthnNS:   "",
 	})
 	if err != nil {
 		t.Fatal(err)

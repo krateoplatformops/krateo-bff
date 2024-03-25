@@ -6,5 +6,5 @@ import (
 )
 
 func Register(r *chi.Mux, rc *rest.Config, authnNS string) {
-	r.Post(newCaller(rc, authnNS))
+	// TBD
 }

@@ -8,13 +8,10 @@ import (
 	"strings"
 
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/layout/rows"
-	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/layout/rows/evaluator"
-	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac/util"
 	rbacutil "github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac/util"
 	"github.com/krateoplatformops/krateo-bff/internal/server/encode"
 	"github.com/rs/zerolog"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/rest"
 )
@@ -88,7 +85,7 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 	}
 
 	if r.client == nil {
-		cli, err := rows.NewClient(r.rc)
+		cli, err := rows.NewClient(r.rc, true)
 		if err != nil {
 			log.Err(err).Msg("unable to create rows rest client")
 			encode.InternalError(wri, err)
@@ -98,7 +95,12 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		r.client = cli
 	}
 
-	all, err := r.client.Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
+	all, err := r.client.List(context.Background(), rows.ListOptions{
+		Namespace: namespace,
+		Subject:   sub,
+		Orgs:      orgs,
+		AuthnNS:   r.authnNS,
+	})
 	if err != nil {
 		log.Err(err).Msg("unable to list rows")
 		if apierrors.IsNotFound(err) {
@@ -107,42 +109,6 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 			encode.Invalid(wri, err)
 		}
 		return
-	}
-
-	for i, el := range all.Items {
-		obj := &el
-		err = evaluator.Eval(context.Background(), obj, evaluator.EvalOptions{
-			RESTConfig: r.rc, AuthnNS: r.authnNS, Subject: sub, Groups: orgs,
-		})
-		if err != nil {
-			log.Err(err).Str("object", obj.GetName()).
-				Msg("unable to evaluate row")
-
-			encode.Invalid(wri, err)
-			return
-		}
-
-		verbs, err := rbacutil.GetAllowedVerbs(context.TODO(), r.rc, util.ResourceInfo{
-			Subject: sub, Groups: orgs,
-			GroupResource: r.gr, ResourceName: obj.GetName(),
-			Namespace: obj.GetNamespace(),
-		})
-		if err != nil {
-			log.Err(err).
-				Str("object", obj.GetName()).
-				Msg("unable to resolve allowed verbs")
-			encode.Invalid(wri, err)
-			return
-		}
-
-		m := obj.GetAnnotations()
-		if len(m) == 0 {
-			m = map[string]string{}
-		}
-		m[allowedVerbsAnnotationKey] = strings.Join(verbs, ",")
-		obj.SetAnnotations(m)
-
-		all.Items[i] = *obj
 	}
 
 	wri.Header().Set("Content-Type", "application/json")

@@ -85,9 +85,7 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 	}
 
 	if r.client == nil {
-		cli, err := cardtemplates.NewClient(r.rc,
-			cardtemplates.AuthnNS(r.authnNS),
-			cardtemplates.Eval(true))
+		cli, err := cardtemplates.NewClient(r.rc, true)
 		if err != nil {
 			log.Err(err).Msg("unable to create cardtemplates rest client")
 			encode.InternalError(wri, err)
@@ -102,6 +100,7 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		Name:      name,
 		Subject:   sub,
 		Orgs:      orgs,
+		AuthnNS:   r.authnNS,
 	})
 	if err != nil {
 		log.Err(err).Msg("unable to resolve card template")

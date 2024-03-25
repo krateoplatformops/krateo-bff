@@ -9,9 +9,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/layout/columns"
-	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/layout/columns/evaluator"
 
-	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac/util"
 	rbacutil "github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac/util"
 	"github.com/krateoplatformops/krateo-bff/internal/server/encode"
 	"github.com/rs/zerolog"
@@ -88,7 +86,7 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 	}
 
 	if r.client == nil {
-		cli, err := columns.NewClient(r.rc)
+		cli, err := columns.NewClient(r.rc, true)
 		if err != nil {
 			log.Err(err).Msg("unable to create columns rest client")
 			encode.InternalError(wri, err)
@@ -98,7 +96,13 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		r.client = cli
 	}
 
-	obj, err := r.client.Namespace(namespace).Get(context.TODO(), name)
+	obj, err := r.client.Get(context.TODO(), columns.GetOptions{
+		Name:      name,
+		Namespace: namespace,
+		Subject:   sub,
+		Orgs:      orgs,
+		AuthnNS:   r.authnNS,
+	})
 	if err != nil {
 		log.Err(err).Msg("unable to resolve column")
 		if apierrors.IsNotFound(err) {
@@ -107,40 +111,6 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 			encode.Invalid(wri, err)
 		}
 		return
-	}
-
-	err = evaluator.Eval(context.Background(), obj, evaluator.EvalOptions{
-		RESTConfig: r.rc, AuthnNS: r.authnNS, Subject: sub, Groups: orgs,
-	})
-	if err != nil {
-		log.Err(err).
-			Str("object", obj.GetName()).
-			Msg("unable to evaluate column")
-
-		encode.Invalid(wri, err)
-		return
-	}
-
-	if obj != nil {
-		verbs, err := rbacutil.GetAllowedVerbs(context.TODO(), r.rc, util.ResourceInfo{
-			Subject: sub, Groups: orgs,
-			GroupResource: r.gr, ResourceName: obj.GetName(),
-			Namespace: obj.GetNamespace(),
-		})
-		if err != nil {
-			log.Err(err).
-				Str("object", obj.GetName()).
-				Msg("unable to resolve allowed verbs")
-			encode.Invalid(wri, err)
-			return
-		}
-
-		m := obj.GetAnnotations()
-		if len(m) == 0 {
-			m = map[string]string{}
-		}
-		m[allowedVerbsAnnotationKey] = strings.Join(verbs, ",")
-		obj.SetAnnotations(m)
 	}
 
 	wri.Header().Set("Content-Type", "application/json")

@@ -11,27 +11,27 @@ import (
 	"testing"
 
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/widgets/formtemplates"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-const (
-	namespace = "demo-system"
-)
-
-func TestFormTemplateGet(t *testing.T) {
-	cfg, err := newRestConfig()
+func TestGet(t *testing.T) {
+	rc, err := newRestConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	cli, err := formtemplates.NewClient(cfg)
+	cli, err := formtemplates.NewClient(rc, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	res, err := cli.Namespace(namespace).Get(context.TODO(), "fireworksapp")
+	res, err := cli.Get(context.TODO(), formtemplates.GetOptions{
+		Name:      "fireworksapp",
+		Namespace: "demo-system",
+		Subject:   "cyberjoker",
+		Orgs:      []string{"devs"},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,18 +43,22 @@ func TestFormTemplateGet(t *testing.T) {
 	}
 }
 
-func TestFormTemplateList(t *testing.T) {
-	cfg, err := newRestConfig()
+func TestList(t *testing.T) {
+	rc, err := newRestConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	cli, err := formtemplates.NewClient(cfg)
+	cli, err := formtemplates.NewClient(rc, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	all, err := cli.Namespace(namespace).List(context.TODO(), v1.ListOptions{})
+	all, err := cli.List(context.TODO(), formtemplates.ListOptions{
+		Namespace: "demo-system",
+		Subject:   "cyberjoker",
+		Orgs:      []string{"devs"},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,30 +68,6 @@ func TestFormTemplateList(t *testing.T) {
 	if err := enc.Encode(all); err != nil {
 		t.Fatal(err)
 	}
-}
-
-// kubectl get cards plain -n demo-system -o yaml
-func TestFormTemplatePlain(t *testing.T) {
-	cfg, err := newRestConfig()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	cli, err := formtemplates.NewClient(cfg)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	res, err := cli.Namespace(namespace).Get(context.TODO(), "fireworksapp")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	//fin, _ := os.Create("ppp.json")
-	//defer fin.Close()
-	enc := json.NewEncoder(os.Stdout)
-	enc.SetIndent("", "  ")
-	enc.Encode(res)
 }
 
 func newRestConfig() (*rest.Config, error) {

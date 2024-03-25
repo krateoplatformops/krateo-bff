@@ -92,9 +92,7 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 
 func (r *lister) complete() error {
 	if r.templatesClient == nil {
-		cli, err := formtemplates.NewClient(r.rc,
-			formtemplates.AuthnNS(r.authnNS),
-			formtemplates.Eval(true))
+		cli, err := formtemplates.NewClient(r.rc, true)
 		if err != nil {
 			return err
 		}

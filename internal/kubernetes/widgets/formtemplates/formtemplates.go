@@ -21,20 +21,6 @@ const (
 	openAPIV3SchemaFilter = `.spec.versions[] | select(.name="%s") | .schema.openAPIV3Schema`
 )
 
-type ClientOption func(*Client)
-
-func AuthnNS(s string) ClientOption {
-	return func(c *Client) {
-		c.authnNS = s
-	}
-}
-
-func Eval(b bool) ClientOption {
-	return func(c *Client) {
-		c.eval = b
-	}
-}
-
 type SchemaDefinitionDeref struct {
 	group     string
 	version   string
@@ -43,29 +29,25 @@ type SchemaDefinitionDeref struct {
 	namespace string
 }
 
-func NewClient(rc *rest.Config, opts ...ClientOption) (*Client, error) {
+func NewClient(rc *rest.Config, eval bool) (*Client, error) {
 	dyn, err := dynamic.NewClient(rc)
 	if err != nil {
 		return nil, err
 	}
 
 	c := &Client{
-		rc:  rc,
-		dyn: dyn,
-	}
-
-	for _, opt := range opts {
-		opt(c)
+		rc:   rc,
+		dyn:  dyn,
+		eval: eval,
 	}
 
 	return c, nil
 }
 
 type Client struct {
-	rc      *rest.Config
-	dyn     dynamic.Client
-	authnNS string
-	eval    bool
+	rc   *rest.Config
+	dyn  dynamic.Client
+	eval bool
 }
 
 type GetOptions struct {

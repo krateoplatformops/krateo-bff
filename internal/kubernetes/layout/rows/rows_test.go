@@ -11,28 +11,28 @@ import (
 	"testing"
 
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/layout/rows"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-const (
-	namespace = "dev-system"
-	name      = "sample"
-)
-
-func TestRowGet(t *testing.T) {
-	cfg, err := newRestConfig()
+func TestGet(t *testing.T) {
+	rc, err := newRestConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	cli, err := rows.NewClient(cfg)
+	cli, err := rows.NewClient(rc, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	res, err := cli.Namespace(namespace).Get(context.TODO(), name)
+	res, err := cli.Get(context.TODO(), rows.GetOptions{
+		Name:      "four",
+		Namespace: "demo-system",
+		Subject:   "cyberjoker",
+		Orgs:      []string{"devs"},
+		AuthnNS:   "",
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,18 +44,23 @@ func TestRowGet(t *testing.T) {
 	}
 }
 
-func TestRowList(t *testing.T) {
-	cfg, err := newRestConfig()
+func TestList(t *testing.T) {
+	rc, err := newRestConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	cli, err := rows.NewClient(cfg)
+	cli, err := rows.NewClient(rc, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	all, err := cli.Namespace(namespace).List(context.TODO(), v1.ListOptions{})
+	all, err := cli.List(context.TODO(), rows.ListOptions{
+		Namespace: "demo-system",
+		Subject:   "cyberjoker",
+		Orgs:      []string{"devs"},
+		AuthnNS:   "",
+	})
 	if err != nil {
 		t.Fatal(err)
 	}

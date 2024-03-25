@@ -48,6 +48,18 @@ func CanCreateOrUpdateResource(ctx context.Context, restConfig *rest.Config, opt
 	return ok, nil
 }
 
+func CanDeleteResource(ctx context.Context, restConfig *rest.Config, opts ResourceInfo) (bool, error) {
+	verbs, err := GetAllowedVerbs(ctx, restConfig, opts)
+	if err != nil {
+		return false, err
+	}
+	if slices.Contains(verbs, "*") {
+		return true, nil
+	}
+
+	return slices.Contains(verbs, "delete"), nil
+}
+
 func GetAllowedVerbs(ctx context.Context, restConfig *rest.Config, opts ResourceInfo) ([]string, error) {
 	rbacClient, err := rbac.NewForConfig(restConfig)
 	if err != nil {

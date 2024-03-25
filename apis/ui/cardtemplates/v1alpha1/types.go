@@ -5,9 +5,28 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+type FormTemplateRef struct {
+	// Name of the referenced object.
+	Name string `json:"name"`
+
+	// Namespace of the referenced object.
+	Namespace string `json:"namespace,omitempty"`
+}
+
+type Action struct {
+	//+kubebuilder:validation:Required
+	Path string `json:"path"`
+
+	// +optional
+	// +kubebuilder:default=GET
+	Verb string `json:"verb,omitempty"`
+}
+
 type Card struct {
+	//+kubebuilder:validation:Required
 	Title string `json:"title"`
 
+	//+kubebuilder:validation:Required
 	Content string `json:"content"`
 
 	// +optional
@@ -21,21 +40,19 @@ type Card struct {
 
 	// +optional
 	Tags string `json:"tags,omitempty"`
-
-	// +optional
-	Actions []*core.API `json:"actions,omitempty"`
-
-	// +optional
-	AllowedActions []string `json:"allowedActions,omitempty"`
 }
 
 // CardTemplate is a template for a Krateo UI Card widget.
 type CardTemplateSpec struct {
+	//+kubebuilder:validation:Required
+	FormTemplateRef FormTemplateRef `json:"formTemplateRef"`
+
+	//+kubebuilder:validation:Required
+	// App is the card template info
+	App Card `json:"app"`
+
 	// +optional
 	Iterator *string `json:"iterator,omitempty"`
-
-	// CardTemplateInfo is the card template info
-	CardTemplateInfo Card `json:"app"`
 
 	// APIList list of api calls.
 	// +optional
@@ -43,7 +60,8 @@ type CardTemplateSpec struct {
 }
 
 type CardTemplateStatus struct {
-	Cards []*Card `json:"content,omitempty"`
+	Cards   []*Card   `json:"content,omitempty"`
+	Actions []*Action `json:"actions,omitempty"`
 }
 
 // +kubebuilder:object:root=true

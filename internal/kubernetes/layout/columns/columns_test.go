@@ -11,28 +11,27 @@ import (
 	"testing"
 
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/layout/columns"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-const (
-	namespace = "dev-system"
-	name      = "sample"
-)
-
 func TestColumnGet(t *testing.T) {
-	cfg, err := newRestConfig()
+	rc, err := newRestConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	cli, err := columns.NewClient(cfg)
+	cli, err := columns.NewClient(rc, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	res, err := cli.Namespace(namespace).Get(context.TODO(), name)
+	res, err := cli.Get(context.TODO(), columns.GetOptions{
+		Name:      "one",
+		Namespace: "demo-system",
+		Subject:   "cyberjoker",
+		Orgs:      []string{"devs"},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,17 +44,21 @@ func TestColumnGet(t *testing.T) {
 }
 
 func TestColumnList(t *testing.T) {
-	cfg, err := newRestConfig()
+	rc, err := newRestConfig()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	cli, err := columns.NewClient(cfg)
+	cli, err := columns.NewClient(rc, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	all, err := cli.Namespace(namespace).List(context.TODO(), v1.ListOptions{})
+	all, err := cli.List(context.TODO(), columns.ListOptions{
+		Namespace: "demo-system",
+		Subject:   "cyberjoker",
+		Orgs:      []string{"devs"},
+	})
 	if err != nil {
 		t.Fatal(err)
 	}

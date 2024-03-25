@@ -1,4 +1,4 @@
-package evaluator
+package batch
 
 import (
 	"context"
@@ -12,21 +12,29 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-type callAPIsOptions struct {
-	restConfig *rest.Config
-	authnNS    string
-	subject    string
-	tpl        tmpl.JQTemplate
-	apiList    []*core.API
+type CallOptions struct {
+	RESTConfig *rest.Config
+	AuthnNS    string
+	Subject    string
+	Tpl        tmpl.JQTemplate
+	ApiList    []*core.API
 }
 
-func callAPIs(ctx context.Context, opts callAPIsOptions) (map[string]any, error) {
+func Call(ctx context.Context, opts CallOptions) (map[string]any, error) {
+	if opts.Tpl == nil {
+		tpl, err := tmpl.New("${", "}")
+		if err != nil {
+			return nil, err
+		}
+		opts.Tpl = tpl
+	}
+
 	apiMap := map[string]*core.API{}
-	for _, x := range opts.apiList {
+	for _, x := range opts.ApiList {
 		apiMap[x.Name] = x
 	}
 
-	sorted := core.SortApiByDeps(opts.apiList)
+	sorted := core.SortApiByDeps(opts.ApiList)
 
 	ds := map[string]any{}
 	for _, key := range sorted {
@@ -38,12 +46,12 @@ func callAPIs(ctx context.Context, opts callAPIsOptions) (map[string]any, error)
 		ref := x.EndpointRef
 		if ptr.Deref(x.KrateoGateway, false) {
 			ref = &core.Reference{
-				Name:      fmt.Sprintf("%s-clientconfig", opts.subject),
-				Namespace: opts.authnNS,
+				Name:      fmt.Sprintf("%s-clientconfig", opts.Subject),
+				Namespace: opts.AuthnNS,
 			}
 		}
 
-		ep, err := endpoints.Resolve(context.TODO(), opts.restConfig, ref)
+		ep, err := endpoints.Resolve(context.TODO(), opts.RESTConfig, ref)
 		if err != nil {
 			return nil, err
 		}
@@ -56,7 +64,7 @@ func callAPIs(ctx context.Context, opts callAPIsOptions) (map[string]any, error)
 		rt, err := api.Call(ctx, hc, api.CallOptions{
 			API:      x,
 			Endpoint: ep,
-			Tpl:      opts.tpl,
+			Tpl:      opts.Tpl,
 			DS:       ds,
 		})
 		if err != nil {

@@ -29,10 +29,6 @@ func filterClusterRoleBindings(ctx context.Context, rbacClient *rbac.RbacClient,
 
 	res := []string{}
 	for _, el := range all.Items {
-		if acceptFn == nil {
-			continue
-		}
-
 		for _, x := range el.Subjects {
 			if acceptFn(x.Kind, x.Name) {
 				res = append(res, el.Name)
@@ -63,10 +59,6 @@ func filterRoleBindings(ctx context.Context, rbacClient *rbac.RbacClient, namesp
 
 	res := []string{}
 	for _, el := range all.Items {
-		if acceptFn == nil {
-			continue
-		}
-
 		for _, x := range el.Subjects {
 			if acceptFn(x.Kind, x.Name) {
 				res = append(res, el.Name)

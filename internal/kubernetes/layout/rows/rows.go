@@ -2,184 +2,144 @@ package rows
 
 import (
 	"context"
-	"time"
 
-	"github.com/krateoplatformops/krateo-bff/apis"
+	columnsv1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/columns/v1alpha1"
 	"github.com/krateoplatformops/krateo-bff/apis/ui/rows/v1alpha1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/dynamic"
+	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/layout/columns"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/apimachinery/pkg/runtime/serializer"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/rest"
 )
 
-const (
-	resourceName = "rows"
-)
-
-func NewClient(rc *rest.Config) (*Client, error) {
-	s := runtime.NewScheme()
-	apis.AddToScheme(s)
-
-	config := *rc
-	config.APIPath = "/apis"
-	config.GroupVersion = &schema.GroupVersion{
-		Group: v1alpha1.Group, Version: v1alpha1.Version,
-	}
-	config.NegotiatedSerializer = serializer.NewCodecFactory(s).
-		WithoutConversion()
-	config.UserAgent = rest.DefaultKubernetesUserAgent()
-
-	cli, err := rest.RESTClientFor(&config)
+func NewClient(rc *rest.Config, eval bool) (*Client, error) {
+	dyn, err := dynamic.NewClient(rc)
 	if err != nil {
 		return nil, err
 	}
 
-	pc := runtime.NewParameterCodec(s)
+	cc, err := columns.NewClient(rc, eval)
+	if err != nil {
+		return nil, err
+	}
 
-	return &Client{rc: cli, pc: pc}, nil
+	return &Client{
+		dyn: dyn,
+		cc:  cc,
+		gvk: v1alpha1.RowGroupVersionKind,
+	}, nil
 }
 
 type Client struct {
-	rc rest.Interface
-	pc runtime.ParameterCodec
-	ns string
+	dyn  dynamic.Client
+	gvk  schema.GroupVersionKind
+	cc   *columns.Client
+	eval bool
 }
 
-func (c *Client) Namespace(ns string) *Client {
-	c.ns = ns
-	return c
+type GetOptions struct {
+	Name      string
+	Namespace string
+	Subject   string
+	Orgs      []string
+	AuthnNS   string
 }
 
-func (c *Client) Get(ctx context.Context, name string) (result *v1alpha1.Row, err error) {
-	result = &v1alpha1.Row{}
-	err = c.rc.Get().
-		Namespace(c.ns).
-		Resource(resourceName).
-		Name(name).
-		Do(ctx).
-		Into(result)
-	// issue: https://github.com/kubernetes/client-go/issues/541
-	result.SetGroupVersionKind(v1alpha1.RowGroupVersionKind)
-	return
-}
-
-func (c *Client) List(ctx context.Context, opts metav1.ListOptions) (result *v1alpha1.RowList, err error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+func (c *Client) Get(ctx context.Context, opts GetOptions) (*v1alpha1.Row, error) {
+	uns, err := c.dyn.Get(ctx, opts.Name, dynamic.Options{
+		Namespace: opts.Namespace,
+		GVK:       c.gvk,
+	})
+	if err != nil {
+		return nil, err
 	}
-	result = &v1alpha1.RowList{}
-	err = c.rc.Get().
-		Namespace(c.ns).
-		Resource(resourceName).
-		VersionedParams(&opts, c.pc).
-		Timeout(timeout).
-		Do(ctx).
-		Into(result)
 
-	result.SetGroupVersionKind(corev1.SchemeGroupVersion.WithKind("List"))
-	return
-}
-
-func (c *Client) Watch(ctx context.Context, opts metav1.ListOptions) (watch.Interface, error) {
-	var timeout time.Duration
-	if opts.TimeoutSeconds != nil {
-		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	obj := &v1alpha1.Row{}
+	err = c.dyn.Convert(uns.UnstructuredContent(), obj)
+	if err != nil {
+		return nil, err
 	}
-	opts.Watch = true
-	return c.rc.Get().
-		Namespace(c.ns).
-		Resource(resourceName).
-		VersionedParams(&opts, c.pc).
-		Timeout(timeout).
-		Watch(ctx)
+
+	err = c.resolveColumns(ctx, obj, resolveOptions{
+		authnNS: opts.AuthnNS,
+		subject: opts.Subject,
+		orgs:    opts.Orgs,
+	})
+
+	return obj, err
 }
 
-func (c *Client) Create(ctx context.Context, obj *v1alpha1.Row, opts metav1.CreateOptions) (result *v1alpha1.Row, err error) {
-	result = &v1alpha1.Row{}
-	err = c.rc.Post().
-		Namespace(c.ns).
-		Resource(resourceName).
-		VersionedParams(&opts, c.pc).
-		Body(obj).
-		Do(ctx).
-		Into(result)
-	// issue: https://github.com/kubernetes/client-go/issues/541
-	result.SetGroupVersionKind(v1alpha1.RowGroupVersionKind)
-	return
+type ListOptions struct {
+	Namespace string
+	Subject   string
+	Orgs      []string
+	AuthnNS   string
 }
 
-func (c *Client) Update(ctx context.Context, obj *v1alpha1.Row, opts metav1.UpdateOptions) (result *v1alpha1.Row, err error) {
-	result = &v1alpha1.Row{}
-	err = c.rc.Put().
-		Namespace(c.ns).
-		Resource(resourceName).
-		Name(obj.Name).
-		VersionedParams(&opts, c.pc).
-		Body(obj).
-		Do(ctx).
-		Into(result)
-	// issue: https://github.com/kubernetes/client-go/issues/541
-	result.SetGroupVersionKind(v1alpha1.RowGroupVersionKind)
-	return
-}
-
-func (c *Client) UpdateStatus(ctx context.Context, obj *v1alpha1.Row) (result *v1alpha1.Row, err error) {
-	result = &v1alpha1.Row{}
-	err = c.rc.Put().
-		Namespace(c.ns).
-		Resource(resourceName).
-		Name(obj.Name).
-		SubResource("status").
-		Body(obj).
-		Do(ctx).
-		Into(result)
-	// issue: https://github.com/kubernetes/client-go/issues/541
-	result.SetGroupVersionKind(v1alpha1.RowGroupVersionKind)
-	return
-}
-
-func (c *Client) Delete(ctx context.Context, name string, opts metav1.DeleteOptions) error {
-	return c.rc.Delete().
-		Namespace(c.ns).
-		Resource(resourceName).
-		Name(name).
-		Body(&opts).
-		Do(ctx).
-		Error()
-}
-
-func (c *Client) DeleteCollection(ctx context.Context, opts metav1.DeleteOptions, listOpts metav1.ListOptions) error {
-	var timeout time.Duration
-	if listOpts.TimeoutSeconds != nil {
-		timeout = time.Duration(*listOpts.TimeoutSeconds) * time.Second
+func (c *Client) List(ctx context.Context, opts ListOptions) (*v1alpha1.RowList, error) {
+	uns, err := c.dyn.List(ctx, dynamic.Options{
+		Namespace: opts.Namespace,
+		GVK:       c.gvk,
+	})
+	if err != nil {
+		return nil, err
 	}
-	return c.rc.Delete().
-		Namespace(c.ns).
-		Resource(resourceName).
-		VersionedParams(&listOpts, c.pc).
-		Timeout(timeout).
-		Body(&opts).
-		Do(ctx).
-		Error()
+
+	all := &v1alpha1.RowList{}
+	err = c.dyn.Convert(uns.UnstructuredContent(), all)
+	if err != nil {
+		return nil, err
+	}
+
+	for i, _ := range all.Items {
+		err := c.resolveColumns(ctx, &all.Items[i], resolveOptions{
+			authnNS: opts.AuthnNS,
+			subject: opts.Subject,
+			orgs:    opts.Orgs,
+		})
+		if err != nil {
+			return all, err
+		}
+	}
+
+	return all, nil
 }
 
-func (c *Client) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts metav1.PatchOptions, subresources ...string) (result *v1alpha1.Row, err error) {
-	result = &v1alpha1.Row{}
-	err = c.rc.Patch(pt).
-		Namespace(c.ns).
-		Resource(resourceName).
-		Name(name).
-		SubResource(subresources...).
-		VersionedParams(&opts, c.pc).
-		Body(data).
-		Do(ctx).
-		Into(result)
-	// issue: https://github.com/kubernetes/client-go/issues/541
-	result.SetGroupVersionKind(v1alpha1.RowGroupVersionKind)
-	return
+type resolveOptions struct {
+	authnNS string
+	subject string
+	orgs    []string
+}
+
+func (c *Client) resolveColumns(ctx context.Context, in *v1alpha1.Row, opts resolveOptions) error {
+	refs := in.Spec.ColumnListRef
+	if refs == nil {
+		return nil
+	}
+
+	all := &columnsv1alpha1.ColumnList{
+		Items: []columnsv1alpha1.Column{},
+	}
+	all.SetGroupVersionKind(columnsv1alpha1.SchemeGroupVersion.WithKind("ColumnList"))
+
+	for _, ref := range refs {
+		el, err := c.cc.Get(ctx, columns.GetOptions{
+			Name:      ref.Name,
+			Namespace: ref.Namespace,
+			AuthnNS:   opts.authnNS,
+			Subject:   opts.subject,
+			Orgs:      opts.orgs,
+		})
+		if err != nil {
+			return err
+		}
+
+		all.Items = append(all.Items, *el)
+	}
+
+	in.Status.Content = &runtime.RawExtension{
+		Object: all,
+	}
+
+	return nil
 }

@@ -10,7 +10,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	rbacutil "github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac/util"
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/widgets/cardtemplates"
-	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/widgets/cardtemplates/evaluator"
 	"github.com/krateoplatformops/krateo-bff/internal/server/encode"
 	"github.com/rs/zerolog"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -86,9 +85,9 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 	}
 
 	if r.client == nil {
-		cli, err := cardtemplates.NewClient(r.rc)
+		cli, err := cardtemplates.NewClient(r.rc, true)
 		if err != nil {
-			log.Err(err).Msg("unable to create card template rest client")
+			log.Err(err).Msg("unable to create cardtemplates rest client")
 			encode.InternalError(wri, err)
 			return
 		}
@@ -96,7 +95,13 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		r.client = cli
 	}
 
-	obj, err := r.client.Namespace(namespace).Get(context.TODO(), name)
+	obj, err := r.client.Get(context.TODO(), cardtemplates.GetOptions{
+		Namespace: namespace,
+		Name:      name,
+		Subject:   sub,
+		Orgs:      orgs,
+		AuthnNS:   r.authnNS,
+	})
 	if err != nil {
 		log.Err(err).Msg("unable to resolve card template")
 		if apierrors.IsNotFound(err) {
@@ -104,17 +109,6 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		} else {
 			encode.Invalid(wri, err)
 		}
-		return
-	}
-
-	err = evaluator.Eval(context.Background(), obj, evaluator.EvalOptions{
-		RESTConfig: r.rc, AuthnNS: r.authnNS, Subject: sub, Groups: orgs,
-	})
-	if err != nil {
-		log.Err(err).
-			Str("object", obj.GetName()).
-			Msg("unable to evaluate card template")
-		encode.Invalid(wri, err)
 		return
 	}
 

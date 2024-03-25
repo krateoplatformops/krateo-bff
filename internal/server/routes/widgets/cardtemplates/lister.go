@@ -9,11 +9,9 @@ import (
 
 	rbacutil "github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac/util"
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/widgets/cardtemplates"
-	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/widgets/cardtemplates/evaluator"
 	"github.com/krateoplatformops/krateo-bff/internal/server/encode"
 	"github.com/rs/zerolog"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/rest"
 )
@@ -87,9 +85,9 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 	}
 
 	if r.client == nil {
-		cli, err := cardtemplates.NewClient(r.rc)
+		cli, err := cardtemplates.NewClient(r.rc, true)
 		if err != nil {
-			log.Err(err).Msg("unable to create card template rest client")
+			log.Err(err).Msg("unable to create cardtemplates rest client")
 			encode.InternalError(wri, err)
 			return
 		}
@@ -97,31 +95,20 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		r.client = cli
 	}
 
-	all, err := r.client.Namespace(namespace).List(context.TODO(), metav1.ListOptions{})
+	all, err := r.client.List(context.TODO(), cardtemplates.ListOptions{
+		Namespace: namespace,
+		Subject:   sub,
+		Orgs:      orgs,
+		AuthnNS:   r.authnNS,
+	})
 	if err != nil {
-		log.Err(err).Msg("unable to list card template")
+		log.Err(err).Msg("unable to list cardtemplates")
 		if apierrors.IsNotFound(err) {
 			encode.NotFound(wri, err)
 		} else {
 			encode.Invalid(wri, err)
 		}
 		return
-	}
-
-	for i, el := range all.Items {
-		obj := &el
-		err = evaluator.Eval(context.Background(), obj, evaluator.EvalOptions{
-			RESTConfig: r.rc, AuthnNS: r.authnNS, Subject: sub, Groups: orgs,
-		})
-		if err != nil {
-			log.Err(err).Str("object", obj.GetName()).
-				Msg("unable to evaluate card template")
-
-			encode.Invalid(wri, err)
-			return
-		}
-
-		all.Items[i] = *obj
 	}
 
 	wri.Header().Set("Content-Type", "application/json")

@@ -6,5 +6,8 @@ import (
 )
 
 func Register(r *chi.Mux, rc *rest.Config, authnNS string) {
-	// TBD
+	r.Get(newHandler(rc, authnNS))
+	r.Post(newHandler(rc, authnNS))
+	r.Put(newHandler(rc, authnNS))
+	r.Delete(newHandler(rc, authnNS))
 }

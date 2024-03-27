@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/krateoplatformops/krateo-bff/internal/server/encode"
 	"github.com/rs/zerolog/log"
 	"k8s.io/client-go/rest"
 )
@@ -31,7 +32,11 @@ type handler struct {
 }
 
 func (r *handler) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
-	rt := r.x.do(req)
+	rt, err := r.x.do(req)
+	if err != nil {
+		encode.Invalid(wri, err)
+		return
+	}
 
 	wri.Header().Set("Content-Type", "application/json")
 	wri.WriteHeader(http.StatusOK)

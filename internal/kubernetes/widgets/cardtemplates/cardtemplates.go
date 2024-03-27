@@ -27,6 +27,7 @@ type FormTemplateDeref struct {
 	group     string
 	version   string
 	resource  string
+	kind      string
 	name      string
 	namespace string
 }
@@ -173,6 +174,7 @@ func (c *Client) createActions(ctx context.Context, in *v1alpha1.CardTemplate, s
 		qs := url.Values{}
 		qs.Set("group", v1alpha1.Group)
 		qs.Set("version", "v1alpha1")
+		qs.Set("kind", in.Kind)
 		qs.Set("plural", "cardtemplates")
 		qs.Set("sub", sub)
 		qs.Set("orgs", strings.Join(orgs, ","))
@@ -205,6 +207,7 @@ func (c *Client) createActions(ctx context.Context, in *v1alpha1.CardTemplate, s
 		qs := url.Values{}
 		qs.Set("group", ref.group)
 		qs.Set("version", ref.version)
+		qs.Set("kind", ref.kind)
 		qs.Set("plural", ref.resource)
 		qs.Set("sub", sub)
 		qs.Set("orgs", strings.Join(orgs, ","))
@@ -275,7 +278,7 @@ func (c *Client) resolveFormTemplateRef(ctx context.Context, in *v1alpha1.CardTe
 	gr := dynamic.InferGroupResource(gv.Group, kind)
 
 	return &FormTemplateDeref{
-		group: gv.Group, version: version, resource: gr.Resource,
+		group: gv.Group, version: version, resource: gr.Resource, kind: kind,
 		name: name, namespace: namespace,
 	}, nil
 }

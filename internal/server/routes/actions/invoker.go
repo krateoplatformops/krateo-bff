@@ -2,38 +2,28 @@ package actions
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"path"
-	"strconv"
 
 	"github.com/krateoplatformops/krateo-bff/apis/core"
 	"github.com/krateoplatformops/krateo-bff/internal/api"
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/endpoints"
 	"github.com/rs/zerolog"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/rest"
 	"k8s.io/utils/ptr"
 )
-
-type invokeOptions struct {
-	name      string
-	namespace string
-	subject   string
-	orgs      string
-	plural    string
-	group     string
-	version   string
-	verbose   bool
-}
 
 type invoker struct {
 	rc      *rest.Config
 	authnNS string
 }
 
-func (inv *invoker) do(req *http.Request) map[string]any {
-	opts := invokeOptionsFromRequest(req)
+func (inv *invoker) do(req *http.Request) (map[string]any, error) {
+	opts := optionsFromRequest(req)
 
 	log := zerolog.Ctx(req.Context()).
 		With().
@@ -42,11 +32,7 @@ func (inv *invoker) do(req *http.Request) map[string]any {
 		Logger()
 
 	x := core.API{
-		Path: ptr.To(
-			path.Join("/apis", opts.group, opts.version,
-				"namespaces", opts.namespace,
-				opts.plural, opts.name),
-		),
+		Path: ptr.To(buildApiPath(req.Method, opts)),
 		Verb: ptr.To(req.Method),
 		EndpointRef: &core.Reference{
 			Name:      fmt.Sprintf("%s-clientconfig", opts.subject),
@@ -54,18 +40,11 @@ func (inv *invoker) do(req *http.Request) map[string]any {
 		},
 	}
 
-	var dat []byte
-	switch req.Method {
-	case http.MethodPost, http.MethodPut, http.MethodPatch:
-		var err error
-		dat, err = io.ReadAll(io.LimitReader(req.Body, 1<<20))
-		if err != nil {
-			log.Warn().Msg(err.Error())
-		}
-	default:
-		dat = nil
+	dat, err := inv.buildPayload(req, opts)
+	if err != nil {
+		log.Err(err).Msg("building payload for API request")
+		return nil, err
 	}
-
 	if dat != nil {
 		x.Payload = ptr.To(string(dat))
 	}
@@ -76,7 +55,7 @@ func (inv *invoker) do(req *http.Request) map[string]any {
 			Str("endpoint.name", x.EndpointRef.Name).
 			Str("endpoint.namespace", x.EndpointRef.Namespace).
 			Msg("resolving endpoint reference")
-		return nil
+		return nil, err
 	}
 	ep.Debug = opts.verbose
 
@@ -86,7 +65,7 @@ func (inv *invoker) do(req *http.Request) map[string]any {
 			Str("endpoint.name", x.EndpointRef.Name).
 			Str("endpoint.namespace", x.EndpointRef.Namespace).
 			Msg("unable to create HTTP client for endpoint")
-		return nil
+		return nil, err
 	}
 
 	rt, err := api.Call(context.Background(), hc, api.CallOptions{
@@ -98,23 +77,66 @@ func (inv *invoker) do(req *http.Request) map[string]any {
 			Str("endpoint.name", x.EndpointRef.Name).
 			Str("endpoint.namespace", x.EndpointRef.Namespace).
 			Msg("unable to call endpoint")
-		return nil
+		return nil, err
 	}
 
-	return rt
+	return rt, nil
 }
 
-func invokeOptionsFromRequest(req *http.Request) (opts invokeOptions) {
-	qs := req.URL.Query()
+func (inv *invoker) buildPayload(req *http.Request, opts options) ([]byte, error) {
+	if req.Method == http.MethodGet || req.Method == http.MethodDelete {
+		return nil, nil
+	}
 
-	opts.verbose, _ = strconv.ParseBool(qs.Get("verbose"))
-	opts.version = qs.Get("version")
-	opts.group = qs.Get("group")
-	opts.plural = qs.Get("plural")
-	opts.name = qs.Get("name")
-	opts.namespace = qs.Get("namespace")
-	opts.subject = qs.Get("sub")
-	opts.orgs = qs.Get("orgs")
+	buf, err := io.ReadAll(io.LimitReader(req.Body, 1<<20))
+	if err != nil {
+		return nil, err
+	}
+	if len(buf) == 0 {
+		return nil, fmt.Errorf("expected payload")
+	}
 
-	return
+	rv, err := inv.findResourceVersion(req)
+	if err != nil {
+		return buf, err
+	}
+
+	m := map[string]any{}
+	err = json.Unmarshal(buf, &m)
+	if err != nil {
+		return nil, err
+	}
+
+	tmp := unstructured.Unstructured{}
+	tmp.SetUnstructuredContent(map[string]any{
+		"spec": m,
+	})
+	tmp.SetAPIVersion(fmt.Sprintf("%s/%s", opts.group, opts.version))
+	tmp.SetKind(opts.kind)
+	tmp.SetName(opts.name)
+	tmp.SetNamespace(opts.namespace)
+
+	if len(rv) > 0 {
+		tmp.SetResourceVersion(rv)
+	}
+
+	return json.Marshal(tmp.UnstructuredContent())
+}
+
+func (inv *invoker) findResourceVersion(req *http.Request) (rv string, err error) {
+	if req.Method != http.MethodPut {
+		return "", nil
+	}
+
+	uns, err := newGetter(inv.rc, inv.authnNS).Get(req)
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			return "", err
+		}
+	}
+	if uns != nil {
+		rv = uns.GetResourceVersion()
+	}
+
+	return rv, nil
 }

@@ -24,6 +24,7 @@ const (
 type SchemaDefinitionDeref struct {
 	group     string
 	version   string
+	kind      string
 	resource  string
 	name      string
 	namespace string
@@ -176,6 +177,7 @@ func (c *Client) createActions(ctx context.Context, in *v1alpha1.FormTemplate, s
 		qs := url.Values{}
 		qs.Set("group", ref.group)
 		qs.Set("version", ref.version)
+		qs.Set("kind", ref.kind)
 		qs.Set("plural", ref.resource)
 		qs.Set("sub", sub)
 		qs.Set("orgs", strings.Join(orgs, ","))
@@ -227,7 +229,7 @@ func (c *Client) resolveSchemaDefinitionRef(ctx context.Context, in *v1alpha1.Fo
 	gr := dynamic.InferGroupResource(gv.Group, kind)
 
 	return &SchemaDefinitionDeref{
-		group: gv.Group, version: version, resource: gr.Resource,
+		group: gv.Group, version: version, resource: gr.Resource, kind: kind,
 		name: name, namespace: namespace,
 	}, nil
 }

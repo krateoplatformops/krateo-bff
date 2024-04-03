@@ -1,0 +1,6 @@
+# CardTemplate 
+
+GET http://localhost:8090/apis/widgets.ui.krateo.io/cardtemplates/one?sub=cyberjoker&orgs=devs&namespace=demo-system
+
+# Action
+

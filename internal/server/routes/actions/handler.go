@@ -13,11 +13,13 @@ const (
 	apiPath = "/apis/actions"
 )
 
-func newHandler(rc *rest.Config, authnNS string) (string, http.HandlerFunc) {
+func newHandler(rc *rest.Config, opts HandlerOptions) (string, http.HandlerFunc) {
 	handler := &handler{
 		x: &invoker{
-			rc:      rc,
-			authnNS: authnNS,
+			rc:            rc,
+			authnNS:       opts.AuthnNS,
+			kubeServerURL: opts.KubeServerURL,
+			kubeProxyURL:  opts.KubeProxyURL,
 		},
 	}
 	return apiPath, func(wri http.ResponseWriter, req *http.Request) {

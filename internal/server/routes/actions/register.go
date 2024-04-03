@@ -5,9 +5,15 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-func Register(r *chi.Mux, rc *rest.Config, authnNS string) {
-	r.Get(newHandler(rc, authnNS))
-	r.Post(newHandler(rc, authnNS))
-	r.Put(newHandler(rc, authnNS))
-	r.Delete(newHandler(rc, authnNS))
+type HandlerOptions struct {
+	AuthnNS       string
+	KubeServerURL string
+	KubeProxyURL  string
+}
+
+func Register(r *chi.Mux, rc *rest.Config, opts HandlerOptions) {
+	r.Get(newHandler(rc, opts))
+	r.Post(newHandler(rc, opts))
+	r.Put(newHandler(rc, opts))
+	r.Delete(newHandler(rc, opts))
 }

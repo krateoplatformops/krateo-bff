@@ -59,9 +59,13 @@ type CardTemplateSpec struct {
 	APIList []*core.API `json:"api,omitempty"`
 }
 
-type CardTemplateStatus struct {
-	Cards   []*Card   `json:"content,omitempty"`
+type EvalCard struct {
+	Card    `json:",inline"`
 	Actions []*Action `json:"actions,omitempty"`
+}
+
+type CardTemplateStatus struct {
+	Cards []*EvalCard `json:"content,omitempty"`
 }
 
 // +kubebuilder:object:root=true

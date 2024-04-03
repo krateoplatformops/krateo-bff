@@ -47,6 +47,12 @@ func main() {
 	authnNS := flag.String("authn-store-namespace",
 		env.String("AUTHN_STORE_NAMESPACE", ""),
 		"krateo authn service clientconfig secrets namespace")
+	kubeServerURL := flag.String("kube-server-url",
+		env.String("KUBE_SERVER_URL", "https://kubernetes.default.svc"),
+		"kubernetes API server internal URL")
+	kubeProxyURL := flag.String("kube-proxy-url",
+		env.String("KUBE_PROXY_URL", ""),
+		"kubernetes proxy (gateway) internal URL")
 
 	flag.Usage = func() {
 		fmt.Fprintln(flag.CommandLine.Output(), "Flags:")
@@ -76,7 +82,9 @@ func main() {
 			Str("debug", fmt.Sprintf("%t", *debugOn)).
 			Str("cors", fmt.Sprintf("%t", *corsOn)).
 			Str("port", fmt.Sprintf("%d", *port)).
-			Str("authn-store-namespace", *authnNS)
+			Str("authn-store-namespace", *authnNS).
+			Str("kube-server-url", *kubeServerURL).
+			Str("kube-proxy-url", *kubeProxyURL)
 		if *dumpEnv {
 			evt = evt.Strs("env-vars", os.Environ())
 		}
@@ -122,7 +130,11 @@ func main() {
 	columns.Register(r, cfg, *authnNS)
 	rows.Register(r, cfg, *authnNS)
 	verbs.Register(r, cfg)
-	actions.Register(r, cfg, *authnNS)
+	actions.Register(r, cfg, actions.HandlerOptions{
+		AuthnNS:       *authnNS,
+		KubeServerURL: *kubeServerURL,
+		KubeProxyURL:  *kubeProxyURL,
+	})
 
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", *port),

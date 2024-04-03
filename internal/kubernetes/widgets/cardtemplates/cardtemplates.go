@@ -88,10 +88,7 @@ func (c *Client) Get(ctx context.Context, opts GetOptions) (*v1alpha1.CardTempla
 	}
 
 	if c.eval {
-		err = c.evalTemplate(ctx, obj, opts.Subject, opts.AuthnNS)
-		if err == nil {
-			err = c.createActions(ctx, obj, opts.Subject, opts.Orgs)
-		}
+		err = c.evalCard(ctx, obj, opts.Subject, opts.Orgs, opts.AuthnNS)
 	}
 
 	return obj, err
@@ -125,12 +122,7 @@ func (c *Client) List(ctx context.Context, opts ListOptions) (*v1alpha1.CardTemp
 		}
 
 		if c.eval {
-			err := c.evalTemplate(ctx, &all.Items[i], opts.Subject, opts.AuthnNS)
-			if err != nil {
-				return all, err
-			}
-
-			err = c.createActions(ctx, &all.Items[i], opts.Subject, opts.Orgs)
+			err = c.evalCard(ctx, &all.Items[i], opts.Subject, opts.Orgs, opts.AuthnNS)
 			if err != nil {
 				return all, err
 			}
@@ -152,10 +144,8 @@ func (c *Client) Delete(ctx context.Context, opts DeleteOptions) error {
 	})
 }
 
-func (c *Client) createActions(ctx context.Context, in *v1alpha1.CardTemplate, sub string, orgs []string) error {
-	if in.Status.Actions == nil {
-		in.Status.Actions = []*v1alpha1.Action{}
-	}
+func (c *Client) resolveActions(ctx context.Context, in *v1alpha1.CardTemplate, sub string, orgs []string) ([]*v1alpha1.Action, error) {
+	actions := []*v1alpha1.Action{}
 
 	ok, err := rbacutil.CanDeleteResource(ctx, c.rc,
 		rbacutil.ResourceInfo{
@@ -168,8 +158,9 @@ func (c *Client) createActions(ctx context.Context, in *v1alpha1.CardTemplate, s
 			Namespace:    in.GetNamespace(),
 		})
 	if err != nil {
-		return err
+		return nil, err
 	}
+
 	if ok {
 		qs := url.Values{}
 		qs.Set("group", v1alpha1.Group)
@@ -181,15 +172,15 @@ func (c *Client) createActions(ctx context.Context, in *v1alpha1.CardTemplate, s
 		qs.Set("name", in.Name)
 		qs.Set("namespace", in.Namespace)
 
-		in.Status.Actions = append(in.Status.Actions, &v1alpha1.Action{
+		actions = append(actions, &v1alpha1.Action{
 			Verb: "delete",
 			Path: fmt.Sprintf(actionPathFmt, qs.Encode()),
 		})
 	}
 
-	ref, err := c.resolveFormTemplateRef(ctx, in)
+	ref, err := c.resolveFormTemplateRef(ctx, in.Spec.FormTemplateRef)
 	if err != nil {
-		return err
+		return actions, err
 	}
 
 	ok, err = rbacutil.CanListResource(ctx, c.rc,
@@ -201,7 +192,7 @@ func (c *Client) createActions(ctx context.Context, in *v1alpha1.CardTemplate, s
 			Namespace:     ref.namespace,
 		})
 	if err != nil {
-		return err
+		return actions, err
 	}
 	if ok {
 		qs := url.Values{}
@@ -214,18 +205,18 @@ func (c *Client) createActions(ctx context.Context, in *v1alpha1.CardTemplate, s
 		qs.Set("name", ref.name)
 		qs.Set("namespace", ref.namespace)
 
-		in.Status.Actions = append(in.Status.Actions, &v1alpha1.Action{
+		actions = append(actions, &v1alpha1.Action{
 			Verb: "get",
 			Path: fmt.Sprintf(actionPathFmt, qs.Encode()),
 		})
 	}
 
-	return nil
+	return actions, nil
 }
 
-func (c *Client) resolveFormTemplateRef(ctx context.Context, in *v1alpha1.CardTemplate) (*FormTemplateDeref, error) {
-	uns, err := c.dyn.Get(ctx, in.Spec.FormTemplateRef.Name, dynamic.Options{
-		Namespace: in.Spec.FormTemplateRef.Namespace,
+func (c *Client) resolveFormTemplateRef(ctx context.Context, in v1alpha1.FormTemplateRef) (*FormTemplateDeref, error) {
+	uns, err := c.dyn.Get(ctx, in.Name, dynamic.Options{
+		Namespace: in.Namespace,
 		GVK:       formtemplatesv1alpha1.FormTemplateGroupVersionKind,
 	})
 	if err != nil {
@@ -283,7 +274,29 @@ func (c *Client) resolveFormTemplateRef(ctx context.Context, in *v1alpha1.CardTe
 	}, nil
 }
 
-func (c *Client) evalTemplate(ctx context.Context, in *v1alpha1.CardTemplate, sub string, authnNS string) error {
+func (c *Client) evalCard(ctx context.Context, in *v1alpha1.CardTemplate, sub string, orgs []string, authnNS string) error {
+	cards, err := c.evalTemplate(ctx, in, sub, authnNS)
+	if err != nil {
+		return err
+	}
+
+	actions, err := c.resolveActions(ctx, in, sub, orgs)
+	if err != nil {
+		return err
+	}
+
+	if len(actions) > 0 {
+		for i := range cards {
+			cards[i].Actions = make([]*v1alpha1.Action, len(actions))
+			copy(cards[i].Actions, actions)
+		}
+	}
+
+	in.Status.Cards = cards
+	return nil
+}
+
+func (c *Client) evalTemplate(ctx context.Context, in *v1alpha1.CardTemplate, sub string, authnNS string) ([]*v1alpha1.EvalCard, error) {
 	dict, err := batch.Call(ctx, batch.CallOptions{
 		RESTConfig: c.rc,
 		Tpl:        c.tpl,
@@ -292,7 +305,7 @@ func (c *Client) evalTemplate(ctx context.Context, in *v1alpha1.CardTemplate, su
 		Subject:    sub,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	tot := 1
@@ -300,23 +313,24 @@ func (c *Client) evalTemplate(ctx context.Context, in *v1alpha1.CardTemplate, su
 	if len(it) > 0 {
 		len, err := c.tpl.Execute(fmt.Sprintf("${ %s | length }", it), dict)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		tot, err = strconv.Atoi(len)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	in.Status.Cards = make([]*v1alpha1.Card, tot)
+	cards := make([]*v1alpha1.EvalCard, tot)
+
 	for i := 0; i < tot; i++ {
-		in.Status.Cards[i] = c.renderCard(&in.Spec, dict, i)
+		cards[i] = c.renderCard(&in.Spec, dict, i)
 	}
 
-	return nil
+	return cards, nil
 }
 
-func (c *Client) renderCard(spec *v1alpha1.CardTemplateSpec, ds map[string]any, idx int) *v1alpha1.Card {
+func (c *Client) renderCard(spec *v1alpha1.CardTemplateSpec, ds map[string]any, idx int) *v1alpha1.EvalCard {
 	it := ptr.Deref(spec.Iterator, "")
 
 	hackQueryFn := func(q string) string {
@@ -337,12 +351,14 @@ func (c *Client) renderCard(spec *v1alpha1.CardTemplateSpec, ds map[string]any, 
 		return out
 	}
 
-	return &v1alpha1.Card{
-		Title:   render(spec.App.Title, ds),
-		Content: render(spec.App.Content, ds),
-		Icon:    render(spec.App.Icon, ds),
-		Color:   render(spec.App.Color, ds),
-		Date:    render(spec.App.Date, ds),
-		Tags:    render(spec.App.Tags, ds),
+	return &v1alpha1.EvalCard{
+		Card: v1alpha1.Card{
+			Title:   render(spec.App.Title, ds),
+			Content: render(spec.App.Content, ds),
+			Icon:    render(spec.App.Icon, ds),
+			Color:   render(spec.App.Color, ds),
+			Date:    render(spec.App.Date, ds),
+			Tags:    render(spec.App.Tags, ds),
+		},
 	}
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"path"
 
 	"github.com/krateoplatformops/krateo-bff/apis/core"
 	"github.com/krateoplatformops/krateo-bff/internal/api"
@@ -15,16 +14,11 @@ import (
 	"k8s.io/utils/ptr"
 )
 
-func newGetter(rc *rest.Config, authnNS string) *getter {
-	return &getter{
-		rc:      rc,
-		authnNS: authnNS,
-	}
-}
-
 type getter struct {
-	rc      *rest.Config
-	authnNS string
+	rc            *rest.Config
+	authnNS       string
+	kubeServerURL string
+	kubeProxyURL  string
 }
 
 func (g *getter) Get(req *http.Request) (*unstructured.Unstructured, error) {
@@ -37,11 +31,7 @@ func (g *getter) Get(req *http.Request) (*unstructured.Unstructured, error) {
 		Logger()
 
 	x := core.API{
-		Path: ptr.To(
-			path.Join("/apis", opts.group, opts.version,
-				"namespaces", opts.namespace,
-				opts.plural, opts.name),
-		),
+		Path: ptr.To(buildApiPath(http.MethodGet, opts)),
 		Verb: ptr.To(http.MethodGet),
 		EndpointRef: &core.Reference{
 			Name:      fmt.Sprintf("%s-clientconfig", opts.subject),
@@ -58,6 +48,13 @@ func (g *getter) Get(req *http.Request) (*unstructured.Unstructured, error) {
 		return nil, err
 	}
 	ep.Debug = opts.verbose
+
+	if len(g.kubeProxyURL) > 0 {
+		ep.ProxyURL = g.kubeProxyURL
+	}
+	if len(g.kubeServerURL) > 0 {
+		ep.ServerURL = g.kubeServerURL
+	}
 
 	hc, err := api.HTTPClientForEndpoint(ep)
 	if err != nil {

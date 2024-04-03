@@ -115,21 +115,21 @@ spec:
             type: object
           status:
             properties:
-              actions:
-                items:
-                  properties:
-                    path:
-                      type: string
-                    verb:
-                      default: GET
-                      type: string
-                  required:
-                  - path
-                  type: object
-                type: array
               content:
                 items:
                   properties:
+                    actions:
+                      items:
+                        properties:
+                          path:
+                            type: string
+                          verb:
+                            default: GET
+                            type: string
+                        required:
+                        - path
+                        type: object
+                      type: array
                     color:
                       type: string
                     content:

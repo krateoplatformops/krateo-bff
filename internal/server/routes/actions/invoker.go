@@ -18,8 +18,10 @@ import (
 )
 
 type invoker struct {
-	rc      *rest.Config
-	authnNS string
+	rc            *rest.Config
+	authnNS       string
+	kubeServerURL string
+	kubeProxyURL  string
 }
 
 func (inv *invoker) do(req *http.Request) (map[string]any, error) {
@@ -58,6 +60,14 @@ func (inv *invoker) do(req *http.Request) (map[string]any, error) {
 		return nil, err
 	}
 	ep.Debug = opts.verbose
+
+	if len(inv.kubeProxyURL) > 0 {
+		ep.ProxyURL = inv.kubeProxyURL
+	}
+
+	if len(inv.kubeServerURL) > 0 {
+		ep.ServerURL = inv.kubeServerURL
+	}
 
 	hc, err := api.HTTPClientForEndpoint(ep)
 	if err != nil {
@@ -128,7 +138,14 @@ func (inv *invoker) findResourceVersion(req *http.Request) (rv string, err error
 		return "", nil
 	}
 
-	uns, err := newGetter(inv.rc, inv.authnNS).Get(req)
+	getter := &getter{
+		rc:            inv.rc,
+		authnNS:       inv.authnNS,
+		kubeServerURL: inv.kubeServerURL,
+		kubeProxyURL:  inv.kubeProxyURL,
+	}
+
+	uns, err := getter.Get(req)
 	if err != nil {
 		if !apierrors.IsNotFound(err) {
 			return "", err

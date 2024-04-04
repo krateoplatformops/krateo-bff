@@ -195,11 +195,12 @@ func (c *Client) resolveActions(ctx context.Context, in *v1alpha1.CardTemplate, 
 		return actions, err
 	}
 	if ok {
+		gvk := formtemplatesv1alpha1.FormTemplateGroupVersionKind
 		qs := url.Values{}
-		qs.Set("group", ref.group)
-		qs.Set("version", ref.version)
-		qs.Set("kind", ref.kind)
-		qs.Set("plural", ref.resource)
+		qs.Set("group", gvk.Group)        //ref.group)
+		qs.Set("version", gvk.Version)    // ref.version)
+		qs.Set("kind", gvk.Kind)          // ref.kind)
+		qs.Set("plural", "formtemplates") // ref.resource)
 		qs.Set("sub", sub)
 		qs.Set("orgs", strings.Join(orgs, ","))
 		qs.Set("name", ref.name)

@@ -2,11 +2,14 @@ package rows
 
 import (
 	"context"
+	"fmt"
+	"os"
 
 	columnsv1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/columns/v1alpha1"
 	"github.com/krateoplatformops/krateo-bff/apis/ui/rows/v1alpha1"
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/dynamic"
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/layout/columns"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/rest"
@@ -91,7 +94,7 @@ func (c *Client) List(ctx context.Context, opts ListOptions) (*v1alpha1.RowList,
 		return nil, err
 	}
 
-	for i, _ := range all.Items {
+	for i := range all.Items {
 		err := c.resolveColumns(ctx, &all.Items[i], resolveOptions{
 			authnNS: opts.AuthnNS,
 			subject: opts.Subject,
@@ -131,6 +134,10 @@ func (c *Client) resolveColumns(ctx context.Context, in *v1alpha1.Row, opts reso
 			Orgs:      opts.orgs,
 		})
 		if err != nil {
+			if apierrors.IsNotFound(err) {
+				fmt.Fprintf(os.Stderr, "WARN: column %q @ %s not found\n", ref.Name, ref.Namespace)
+				continue
+			}
 			return err
 		}
 

@@ -16,7 +16,7 @@ import (
 )
 
 func TestGet(t *testing.T) {
-	rc, err := newRestConfig()
+	rc, err := newRestConfig(false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,7 +44,7 @@ func TestGet(t *testing.T) {
 }
 
 func TestList(t *testing.T) {
-	rc, err := newRestConfig()
+	rc, err := newRestConfig(true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -70,11 +70,16 @@ func TestList(t *testing.T) {
 	}
 }
 
-func newRestConfig() (*rest.Config, error) {
+func newRestConfig(vcluster bool) (*rest.Config, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return nil, err
 	}
 
-	return clientcmd.BuildConfigFromFlags("", filepath.Join(home, ".kube", "config"))
+	if !vcluster {
+		return clientcmd.BuildConfigFromFlags("", filepath.Join(home, ".kube", "config"))
+	}
+
+	kubeconfig := filepath.Join(home, "Downloads", "config-vcluster")
+	return clientcmd.BuildConfigFromFlags("", kubeconfig)
 }

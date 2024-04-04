@@ -197,10 +197,10 @@ func (c *Client) resolveActions(ctx context.Context, in *v1alpha1.CardTemplate, 
 	if ok {
 		gvk := formtemplatesv1alpha1.FormTemplateGroupVersionKind
 		qs := url.Values{}
-		qs.Set("group", gvk.Group)        //ref.group)
-		qs.Set("version", gvk.Version)    // ref.version)
-		qs.Set("kind", gvk.Kind)          // ref.kind)
-		qs.Set("plural", "formtemplates") // ref.resource)
+		//qs.Set("group", gvk.Group)        //ref.group)
+		qs.Set("version", gvk.Version) // ref.version)
+		//qs.Set("kind", gvk.Kind)          // ref.kind)
+		//qs.Set("plural", "formtemplates") // ref.resource)
 		qs.Set("sub", sub)
 		qs.Set("orgs", strings.Join(orgs, ","))
 		qs.Set("name", ref.name)
@@ -208,7 +208,7 @@ func (c *Client) resolveActions(ctx context.Context, in *v1alpha1.CardTemplate, 
 
 		actions = append(actions, &v1alpha1.Action{
 			Verb: "get",
-			Path: fmt.Sprintf(actionPathFmt, qs.Encode()),
+			Path: fmt.Sprintf("/apis/widgets.ui.krateo.io/formtemplates/%s?%s", ref.name, qs.Encode()),
 		})
 	}
 

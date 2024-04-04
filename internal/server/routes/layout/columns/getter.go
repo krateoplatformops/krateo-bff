@@ -96,7 +96,7 @@ func (r *getter) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 		r.client = cli
 	}
 
-	obj, err := r.client.Get(context.TODO(), columns.GetOptions{
+	obj, err := r.client.Get(context.Background(), columns.GetOptions{
 		Name:      name,
 		Namespace: namespace,
 		Subject:   sub,

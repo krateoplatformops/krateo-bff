@@ -162,7 +162,7 @@ func (c *Client) createActions(ctx context.Context, in *v1alpha1.FormTemplate, s
 		in.Status.Actions = []*v1alpha1.Action{}
 	}
 
-	ok, err := rbacutil.CanCreateOrUpdateResource(ctx, c.rc,
+	allowed, err := rbacutil.GetAllowedVerbs(ctx, c.rc,
 		rbacutil.ResourceInfo{
 			Subject:       sub,
 			Groups:        orgs,
@@ -173,7 +173,7 @@ func (c *Client) createActions(ctx context.Context, in *v1alpha1.FormTemplate, s
 	if err != nil {
 		return err
 	}
-	if ok {
+	if rbacutil.Can("create", allowed) {
 		qs := url.Values{}
 		qs.Set("group", ref.group)
 		qs.Set("version", ref.version)
@@ -181,8 +181,8 @@ func (c *Client) createActions(ctx context.Context, in *v1alpha1.FormTemplate, s
 		qs.Set("plural", ref.resource)
 		qs.Set("sub", sub)
 		qs.Set("orgs", strings.Join(orgs, ","))
-		qs.Set("name", ref.name)
-		qs.Set("namespace", ref.namespace)
+		//qs.Set("name", ref.name)
+		//qs.Set("namespace", ref.namespace)
 
 		in.Status.Actions = append(in.Status.Actions, &v1alpha1.Action{
 			Verb: "create",

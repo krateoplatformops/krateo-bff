@@ -17,10 +17,22 @@ type ResourceInfo struct {
 	Namespace     string
 }
 
+func Can(what string, verbs []string) bool {
+	if slices.Contains(verbs, "*") {
+		return true
+	}
+
+	return slices.Contains(verbs, what)
+}
+
 func CanListResource(ctx context.Context, restConfig *rest.Config, opts ResourceInfo) (bool, error) {
 	verbs, err := GetAllowedVerbs(ctx, restConfig, opts)
 	if err != nil {
 		return false, err
+	}
+
+	if slices.Contains(verbs, "*") {
+		return true, nil
 	}
 
 	if slices.Contains(verbs, "list") {
@@ -32,20 +44,6 @@ func CanListResource(ctx context.Context, restConfig *rest.Config, opts Resource
 	}
 
 	return false, nil
-}
-
-func CanCreateOrUpdateResource(ctx context.Context, restConfig *rest.Config, opts ResourceInfo) (bool, error) {
-	verbs, err := GetAllowedVerbs(ctx, restConfig, opts)
-	if err != nil {
-		return false, err
-	}
-	if slices.Contains(verbs, "*") {
-		return true, nil
-	}
-
-	ok := slices.Contains(verbs, "create")
-	ok = ok && slices.Contains(verbs, "update")
-	return ok, nil
 }
 
 func CanDeleteResource(ctx context.Context, restConfig *rest.Config, opts ResourceInfo) (bool, error) {

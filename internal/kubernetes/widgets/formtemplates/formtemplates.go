@@ -6,9 +6,11 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/krateoplatformops/krateo-bff/apis/core"
 	"github.com/krateoplatformops/krateo-bff/apis/ui/formtemplates/v1alpha1"
 	"github.com/krateoplatformops/krateo-bff/internal/kubernetes/dynamic"
 	rbacutil "github.com/krateoplatformops/krateo-bff/internal/kubernetes/rbac/util"
+
 	"github.com/krateoplatformops/krateo-bff/internal/strvals"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -21,7 +23,12 @@ const (
 	openAPIV3SchemaFilter = `.spec.versions[] | select(.name="%s") | .schema.openAPIV3Schema`
 )
 
-type SchemaDefinitionDeref struct {
+var (
+	schemaDefinitionGVK      = schema.FromAPIVersionAndKind("core.krateo.io/v1alpha1", "SchemaDefinition")
+	compositionDefinitionGVK = schema.FromAPIVersionAndKind("core.krateo.io/v1alpha1", "CompositionDefinition")
+)
+
+type DefinitionDeref struct {
 	group     string
 	version   string
 	kind      string
@@ -73,8 +80,10 @@ func (c *Client) Get(ctx context.Context, opts GetOptions) (*v1alpha1.FormTempla
 		return nil, err
 	}
 
-	if len(obj.Spec.SchemaDefinitionRef.Namespace) == 0 {
-		obj.Spec.SchemaDefinitionRef.Namespace = opts.Namespace
+	if obj.Spec.SchemaDefinitionRef != nil {
+		if len(obj.Spec.SchemaDefinitionRef.Namespace) == 0 {
+			obj.Spec.SchemaDefinitionRef.Namespace = opts.Namespace
+		}
 	}
 
 	if c.eval {
@@ -106,8 +115,16 @@ func (c *Client) List(ctx context.Context, opts ListOptions) (*v1alpha1.FormTemp
 	}
 
 	for i := range all.Items {
-		if len(all.Items[i].Spec.SchemaDefinitionRef.Namespace) == 0 {
-			all.Items[i].Spec.SchemaDefinitionRef.Namespace = opts.Namespace
+		if all.Items[i].Spec.SchemaDefinitionRef != nil {
+			if len(all.Items[i].Spec.SchemaDefinitionRef.Namespace) == 0 {
+				all.Items[i].Spec.SchemaDefinitionRef.Namespace = opts.Namespace
+			}
+		}
+
+		if all.Items[i].Spec.CompositionDefinitionRef != nil {
+			if len(all.Items[i].Spec.CompositionDefinitionRef.Namespace) == 0 {
+				all.Items[i].Spec.CompositionDefinitionRef.Namespace = opts.Namespace
+			}
 		}
 
 		if c.eval {
@@ -134,30 +151,40 @@ func (c *Client) Delete(ctx context.Context, opts DeleteOptions) error {
 }
 
 func (c *Client) doEval(ctx context.Context, in *v1alpha1.FormTemplate, sub string, orgs []string) error {
-	ref, err := c.resolveSchemaDefinitionRef(ctx, in)
+	gvk := schemaDefinitionGVK
+	ref := in.Spec.SchemaDefinitionRef
+	if ref == nil {
+		ref = in.Spec.CompositionDefinitionRef
+		gvk = compositionDefinitionGVK
+	}
+	if ref == nil {
+		return fmt.Errorf("both 'schemaDefinitionRef' and 'compositionDefinitionRef' are undefined (%s@%s)",
+			in.GetName(), in.GetNamespace())
+	}
+
+	res, err := c.resolveDefinitionRef(ctx, ref, gvk)
 	if err != nil {
 		return err
 	}
 
-	err = c.createActions(ctx, in, sub, orgs, ref)
+	err = c.createActions(ctx, in, sub, orgs, res)
 	if err != nil {
 		return err
 	}
 
-	sch, err := c.openAPISchema(ctx, ref)
+	sch, err := c.openAPISchema(ctx, res)
 	if err != nil {
 		return err
 	}
 
 	in.Status.Content = &v1alpha1.FormTemplateStatusContent{
-		//Instance: &runtime.RawExtension{Object: vals},
 		Schema: &runtime.RawExtension{Object: sch},
 	}
 
 	return nil
 }
 
-func (c *Client) createActions(ctx context.Context, in *v1alpha1.FormTemplate, sub string, orgs []string, ref *SchemaDefinitionDeref) error {
+func (c *Client) createActions(ctx context.Context, in *v1alpha1.FormTemplate, sub string, orgs []string, ref *DefinitionDeref) error {
 	if in.Status.Actions == nil {
 		in.Status.Actions = []*v1alpha1.Action{}
 	}
@@ -193,48 +220,47 @@ func (c *Client) createActions(ctx context.Context, in *v1alpha1.FormTemplate, s
 	return nil
 }
 
-func (c *Client) resolveSchemaDefinitionRef(ctx context.Context, in *v1alpha1.FormTemplate) (*SchemaDefinitionDeref, error) {
-	name := in.Spec.SchemaDefinitionRef.Name
-	namespace := in.Spec.SchemaDefinitionRef.Namespace
-
-	uns, err := c.dyn.Get(ctx, name, dynamic.Options{
-		Namespace: namespace,
-		GVK:       schema.FromAPIVersionAndKind("core.krateo.io/v1alpha1", "SchemaDefinition"),
+func (c *Client) resolveDefinitionRef(ctx context.Context, ref *core.Reference, gvk schema.GroupVersionKind) (*DefinitionDeref, error) {
+	uns, err := c.dyn.Get(ctx, ref.Name, dynamic.Options{
+		Namespace: ref.Namespace,
+		GVK:       gvk,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	schemaSpec, ok, _ := unstructured.NestedMap(uns.UnstructuredContent(), "spec", "schema")
+	status, ok, err := unstructured.NestedMap(uns.UnstructuredContent(), "status")
+	if err != nil {
+		return nil, err
+	}
 	if !ok {
-		return nil,
-			fmt.Errorf("unable to resolve 'schema.spec' for: %s.%s/%s @ %s",
-				uns.GetName(), uns.GetAPIVersion(), uns.GetKind(), uns.GetNamespace())
+		return nil, fmt.Errorf("status not found in '%s/%s'", ref.Namespace, ref.Name)
 	}
 
-	version, ok, _ := unstructured.NestedString(schemaSpec, "version")
+	apiVersion, ok := status["apiVersion"].(string)
 	if !ok {
-		return nil,
-			fmt.Errorf("unable to resolve 'schema.spec.version' for: %s.%s/%s @ %s",
-				uns.GetName(), uns.GetAPIVersion(), uns.GetKind(), uns.GetNamespace())
-	}
-	kind, ok, _ := unstructured.NestedString(schemaSpec, "kind")
-	if !ok {
-		return nil,
-			fmt.Errorf("unable to resolve 'schema.spec.kind' for: %s.%s/%s @ %s",
-				uns.GetName(), uns.GetAPIVersion(), uns.GetKind(), uns.GetNamespace())
+		return nil, fmt.Errorf("status.apiVersion not found in '%s/%s'", ref.Namespace, ref.Name)
 	}
 
-	gv := schema.GroupVersion{Group: "apps.krateo.io", Version: version}
-	gr := dynamic.InferGroupResource(gv.Group, kind)
+	kind, ok := status["kind"].(string)
+	if !ok {
+		return nil, fmt.Errorf("status.kind not found in '%s/%s'", ref.Namespace, ref.Name)
+	}
 
-	return &SchemaDefinitionDeref{
-		group: gv.Group, version: version, resource: gr.Resource, kind: kind,
-		name: name, namespace: namespace,
+	refGVK := schema.FromAPIVersionAndKind(apiVersion, kind)
+	refGR := dynamic.InferGroupResource(refGVK.Group, refGVK.Kind)
+
+	return &DefinitionDeref{
+		group:     refGVK.Group,
+		version:   refGVK.Version,
+		resource:  refGR.Resource,
+		kind:      refGVK.Kind,
+		name:      ref.Name,
+		namespace: ref.Namespace,
 	}, nil
 }
 
-func (c *Client) openAPISchema(ctx context.Context, ref *SchemaDefinitionDeref) (*unstructured.Unstructured, error) {
+func (c *Client) openAPISchema(ctx context.Context, ref *DefinitionDeref) (*unstructured.Unstructured, error) {
 	gr := schema.GroupResource{Group: ref.group, Resource: ref.resource}
 
 	crd, err := c.dyn.Get(ctx, gr.String(), dynamic.Options{

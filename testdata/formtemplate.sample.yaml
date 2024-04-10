@@ -5,6 +5,9 @@ metadata:
   name: fireworksapp
   namespace: demo-system
 spec:
-  schemaDefinitionRef:
-    name: fireworksapp
+  # schemaDefinitionRef:
+  #   name: fireworksapp
+  #   namespace: demo-system
+  compositionDefinitionRef:
+    name: postgresql-tgz
     namespace: demo-system

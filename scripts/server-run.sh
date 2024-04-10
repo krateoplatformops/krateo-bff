@@ -21,7 +21,7 @@ kubectl apply -f testdata/column-demo.yaml
 kubectl apply -f testdata/row-demo.yaml
 
 # SchemaDefinition sample
-kubectl apply -f testdata/schemadefinition.crd.yaml
+kubectl apply -f testdata/schemadefinitions.crd.yaml
 kubectl apply -f testdata/schemadefinition.sample.yaml
 # FormTemplate sample
 kubectl apply -f testdata/formtemplate.sample.yaml

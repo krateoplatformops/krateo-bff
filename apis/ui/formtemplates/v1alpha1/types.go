@@ -29,7 +29,8 @@ type Action struct {
 }
 
 type FormTemplateSpec struct {
-	SchemaDefinitionRef *core.Reference `json:"schemaDefinitionRef"`
+	SchemaDefinitionRef      *core.Reference `json:"schemaDefinitionRef,omitempty"`
+	CompositionDefinitionRef *core.Reference `json:"compositionDefinitionRef,omitempty"`
 }
 
 type FormTemplateStatusContent struct {

@@ -36,6 +36,19 @@ spec:
             type: object
           spec:
             properties:
+              compositionDefinitionRef:
+                description: A Reference to a named object.
+                properties:
+                  name:
+                    description: Name of the referenced object.
+                    type: string
+                  namespace:
+                    description: Namespace of the referenced object.
+                    type: string
+                required:
+                - name
+                - namespace
+                type: object
               schemaDefinitionRef:
                 description: A Reference to a named object.
                 properties:
@@ -49,8 +62,6 @@ spec:
                 - name
                 - namespace
                 type: object
-            required:
-            - schemaDefinitionRef
             type: object
           status:
             properties:

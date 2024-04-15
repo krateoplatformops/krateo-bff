@@ -16,13 +16,13 @@ const (
 	listKind = "CardTemplateList"
 )
 
-func NewClient(rc *rest.Config, eval bool) (*Client, error) {
+func NewClient(rc *rest.Config, verbose bool) (*Client, error) {
 	dyn, err := dynamic.NewClient(rc)
 	if err != nil {
 		return nil, err
 	}
 
-	ctc, err := cardtemplates.NewClient(rc, eval)
+	ctc, err := cardtemplates.NewClient(rc, verbose)
 	if err != nil {
 		return nil, err
 	}
@@ -35,10 +35,9 @@ func NewClient(rc *rest.Config, eval bool) (*Client, error) {
 }
 
 type Client struct {
-	dyn  dynamic.Client
-	gvk  schema.GroupVersionKind
-	ctc  *cardtemplates.Client
-	eval bool
+	dyn dynamic.Client
+	gvk schema.GroupVersionKind
+	ctc *cardtemplates.Client
 }
 
 type GetOptions struct {

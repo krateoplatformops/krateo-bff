@@ -172,5 +172,5 @@ curl "http://localhost:8090/apis/widgets.ui.krateo.io/formtemplates/fireworksapp
 ```sh
 curl -X POST -H "Content-Type: application/json" \
     --data @fireworksapp.json \
-    "http://localhost:8090/apis/apps/fireworksapp?sub=cyberjoker&orgs=devs&kind=Fireworksapp&group=apps.krateo.io&namespace=demo-system"
+    "http://localhost:8090/apis/apps/fireworksapp?sub=cyberjoker&orgs=devs&kind=Fireworksapp&group=composition.krateo.io&namespace=demo-system"
 ```

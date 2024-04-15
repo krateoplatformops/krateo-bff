@@ -86,6 +86,12 @@ func (c *Client) Get(ctx context.Context, opts GetOptions) (*v1alpha1.FormTempla
 		}
 	}
 
+	if obj.Spec.CompositionDefinitionRef != nil {
+		if len(obj.Spec.CompositionDefinitionRef.Namespace) == 0 {
+			obj.Spec.CompositionDefinitionRef.Namespace = opts.Namespace
+		}
+	}
+
 	if c.eval {
 		err = c.doEval(ctx, obj, opts.Subject, opts.Orgs)
 	}

@@ -55,12 +55,14 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 	if len(version) == 0 {
 		version = "v1alpha1"
 	}
+	verbose := qs.Has("verbose")
 
 	log := zerolog.Ctx(req.Context()).With().
 		Str("sub", sub).
 		Strs("orgs", orgs).
 		Str("namespace", namespace).
 		Str("version", version).
+		Bool("verbose", verbose).
 		Logger()
 
 	ok, err := rbacutil.CanListResource(context.TODO(), r.rc, rbacutil.ResourceInfo{
@@ -85,7 +87,7 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 	}
 
 	if r.client == nil {
-		cli, err := cardtemplates.NewClient(r.rc, true)
+		cli, err := cardtemplates.NewClient(r.rc, verbose)
 		if err != nil {
 			log.Err(err).Msg("unable to create cardtemplates rest client")
 			encode.InternalError(wri, err)
@@ -94,6 +96,7 @@ func (r *lister) ServeHTTP(wri http.ResponseWriter, req *http.Request) {
 
 		r.client = cli
 	}
+	r.client.SetVerbose(verbose)
 
 	all, err := r.client.List(context.TODO(), cardtemplates.ListOptions{
 		Namespace: namespace,

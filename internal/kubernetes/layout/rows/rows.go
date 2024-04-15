@@ -15,13 +15,13 @@ import (
 	"k8s.io/client-go/rest"
 )
 
-func NewClient(rc *rest.Config, eval bool) (*Client, error) {
+func NewClient(rc *rest.Config, verbose bool) (*Client, error) {
 	dyn, err := dynamic.NewClient(rc)
 	if err != nil {
 		return nil, err
 	}
 
-	cc, err := columns.NewClient(rc, eval)
+	cc, err := columns.NewClient(rc, verbose)
 	if err != nil {
 		return nil, err
 	}
@@ -34,10 +34,9 @@ func NewClient(rc *rest.Config, eval bool) (*Client, error) {
 }
 
 type Client struct {
-	dyn  dynamic.Client
-	gvk  schema.GroupVersionKind
-	cc   *columns.Client
-	eval bool
+	dyn dynamic.Client
+	gvk schema.GroupVersionKind
+	cc  *columns.Client
 }
 
 type GetOptions struct {

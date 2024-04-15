@@ -3,10 +3,14 @@ package cardtemplates
 import (
 	"context"
 	"fmt"
+	"io"
+	"log"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 
+	"github.com/krateoplatformops/krateo-bff/apis/core"
 	"github.com/krateoplatformops/krateo-bff/apis/ui/cardtemplates/v1alpha1"
 	formtemplatesv1alpha1 "github.com/krateoplatformops/krateo-bff/apis/ui/formtemplates/v1alpha1"
 	"github.com/krateoplatformops/krateo-bff/internal/api/batch"
@@ -23,16 +27,41 @@ const (
 	actionPathFmt = "/apis/actions?%s"
 )
 
-type FormTemplateDeref struct {
+var (
+	schemaDefinitionGVK      = schema.FromAPIVersionAndKind("core.krateo.io/v1alpha1", "SchemaDefinition")
+	compositionDefinitionGVK = schema.FromAPIVersionAndKind("core.krateo.io/v1alpha1", "CompositionDefinition")
+)
+
+type DefinitionDeref struct {
 	group     string
 	version   string
-	resource  string
 	kind      string
+	resource  string
 	name      string
 	namespace string
 }
 
-func NewClient(rc *rest.Config, eval bool) (*Client, error) {
+func (dr *DefinitionDeref) String() string {
+	sb := strings.Builder{}
+	sb.WriteRune('{')
+	sb.WriteString("group: ")
+	sb.WriteString(dr.group)
+	sb.WriteString(", version: ")
+	sb.WriteString(dr.version)
+	sb.WriteString(", kind: ")
+	sb.WriteString(dr.kind)
+	sb.WriteString(", resource: ")
+	sb.WriteString(dr.resource)
+	sb.WriteString(", name: ")
+	sb.WriteString(dr.name)
+	sb.WriteString(", namespace: ")
+	sb.WriteString(dr.namespace)
+	sb.WriteRune('}')
+
+	return sb.String()
+}
+
+func NewClient(rc *rest.Config, verbose bool) (*Client, error) {
 	dyn, err := dynamic.NewClient(rc)
 	if err != nil {
 		return nil, err
@@ -43,21 +72,27 @@ func NewClient(rc *rest.Config, eval bool) (*Client, error) {
 		return nil, err
 	}
 
+	if verbose {
+		log.SetOutput(os.Stderr)
+	} else {
+		log.SetOutput(io.Discard)
+	}
+
 	c := &Client{
-		rc:   rc,
-		dyn:  dyn,
-		tpl:  tpl,
-		eval: eval,
+		rc:      rc,
+		dyn:     dyn,
+		tpl:     tpl,
+		verbose: verbose,
 	}
 
 	return c, nil
 }
 
 type Client struct {
-	rc   *rest.Config
-	dyn  dynamic.Client
-	tpl  tmpl.JQTemplate
-	eval bool
+	rc      *rest.Config
+	dyn     dynamic.Client
+	tpl     tmpl.JQTemplate
+	verbose bool
 }
 
 type GetOptions struct {
@@ -67,6 +102,10 @@ type GetOptions struct {
 	Orgs      []string
 	AuthnNS   string
 }
+
+func (c *Client) SetVerbose(v bool) { c.verbose = v }
+
+func (c *Client) Verbose() bool { return c.verbose }
 
 func (c *Client) Get(ctx context.Context, opts GetOptions) (*v1alpha1.CardTemplate, error) {
 	uns, err := c.dyn.Get(ctx, opts.Name, dynamic.Options{
@@ -87,9 +126,7 @@ func (c *Client) Get(ctx context.Context, opts GetOptions) (*v1alpha1.CardTempla
 		obj.Spec.FormTemplateRef.Namespace = opts.Namespace
 	}
 
-	if c.eval {
-		err = c.evalCard(ctx, obj, opts.Subject, opts.Orgs, opts.AuthnNS)
-	}
+	err = c.evalCard(ctx, obj, opts.Subject, opts.Orgs, opts.AuthnNS)
 
 	return obj, err
 }
@@ -121,11 +158,9 @@ func (c *Client) List(ctx context.Context, opts ListOptions) (*v1alpha1.CardTemp
 			all.Items[i].Spec.FormTemplateRef.Namespace = opts.Namespace
 		}
 
-		if c.eval {
-			err = c.evalCard(ctx, &all.Items[i], opts.Subject, opts.Orgs, opts.AuthnNS)
-			if err != nil {
-				return all, err
-			}
+		err = c.evalCard(ctx, &all.Items[i], opts.Subject, opts.Orgs, opts.AuthnNS)
+		if err != nil {
+			return all, err
 		}
 	}
 
@@ -183,6 +218,10 @@ func (c *Client) resolveActions(ctx context.Context, in *v1alpha1.CardTemplate, 
 		return actions, err
 	}
 
+	if c.verbose {
+		log.Printf("[DBG] resolved formtemplate reference: %s\n", ref)
+	}
+
 	ok, err = rbacutil.CanListResource(ctx, c.rc,
 		rbacutil.ResourceInfo{
 			Subject:       sub,
@@ -197,10 +236,7 @@ func (c *Client) resolveActions(ctx context.Context, in *v1alpha1.CardTemplate, 
 	if ok {
 		gvk := formtemplatesv1alpha1.FormTemplateGroupVersionKind
 		qs := url.Values{}
-		//qs.Set("group", gvk.Group)        //ref.group)
-		qs.Set("version", gvk.Version) // ref.version)
-		//qs.Set("kind", gvk.Kind)          // ref.kind)
-		//qs.Set("plural", "formtemplates") // ref.resource)
+		qs.Set("version", gvk.Version)
 		qs.Set("sub", sub)
 		qs.Set("orgs", strings.Join(orgs, ","))
 		qs.Set("name", ref.name)
@@ -215,7 +251,7 @@ func (c *Client) resolveActions(ctx context.Context, in *v1alpha1.CardTemplate, 
 	return actions, nil
 }
 
-func (c *Client) resolveFormTemplateRef(ctx context.Context, in v1alpha1.FormTemplateRef) (*FormTemplateDeref, error) {
+func (c *Client) resolveFormTemplateRef(ctx context.Context, in v1alpha1.FormTemplateRef) (*DefinitionDeref, error) {
 	uns, err := c.dyn.Get(ctx, in.Name, dynamic.Options{
 		Namespace: in.Namespace,
 		GVK:       formtemplatesv1alpha1.FormTemplateGroupVersionKind,
@@ -224,54 +260,67 @@ func (c *Client) resolveFormTemplateRef(ctx context.Context, in v1alpha1.FormTem
 		return nil, err
 	}
 
-	schemaDefinitionRef, ok, _ := unstructured.NestedMap(uns.UnstructuredContent(), "spec", "schemaDefinitionRef")
-	if !ok {
-		return nil, fmt.Errorf("unable to resolve 'schemaDefinitionRef'")
+	obj := &formtemplatesv1alpha1.FormTemplate{}
+	err = c.dyn.Convert(uns.UnstructuredContent(), obj)
+	if err != nil {
+		return nil, err
 	}
 
-	name, ok, _ := unstructured.NestedString(schemaDefinitionRef, "name")
-	if !ok {
-		return nil, fmt.Errorf("unable to resolve 'schemaDefinitionRef.name'")
+	gvk := schemaDefinitionGVK
+	ref := obj.Spec.SchemaDefinitionRef
+	if ref == nil {
+		ref = obj.Spec.CompositionDefinitionRef
+		gvk = compositionDefinitionGVK
 	}
-	namespace, ok, _ := unstructured.NestedString(schemaDefinitionRef, "namespace")
-	if !ok {
-		return nil, fmt.Errorf("unable to resolve 'schemaDefinitionRef.namespace'")
+	if ref == nil {
+		return nil,
+			fmt.Errorf("both 'schemaDefinitionRef' and 'compositionDefinitionRef' are undefined (%s@%s)", in.Name, in.Namespace)
 	}
 
-	uns, err = c.dyn.Get(ctx, name, dynamic.Options{
-		Namespace: namespace,
-		GVK:       schema.FromAPIVersionAndKind("core.krateo.io/v1alpha1", "SchemaDefinition"),
+	if len(ref.Namespace) == 0 {
+		ref.Namespace = in.Namespace
+	}
+
+	return c.resolveDefinitionRef(ctx, ref, gvk)
+}
+
+func (c *Client) resolveDefinitionRef(ctx context.Context, ref *core.Reference, gvk schema.GroupVersionKind) (*DefinitionDeref, error) {
+	uns, err := c.dyn.Get(ctx, ref.Name, dynamic.Options{
+		Namespace: ref.Namespace,
+		GVK:       gvk,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	schemaSpec, ok, _ := unstructured.NestedMap(uns.UnstructuredContent(), "spec", "schema")
+	status, ok, err := unstructured.NestedMap(uns.UnstructuredContent(), "status")
+	if err != nil {
+		return nil, err
+	}
 	if !ok {
-		return nil,
-			fmt.Errorf("unable to resolve 'schema.spec' for: %s.%s/%s @ %s",
-				uns.GetName(), uns.GetAPIVersion(), uns.GetKind(), uns.GetNamespace())
+		return nil, fmt.Errorf("status not found in '%s/%s'", ref.Namespace, ref.Name)
 	}
 
-	version, ok, _ := unstructured.NestedString(schemaSpec, "version")
+	apiVersion, ok := status["apiVersion"].(string)
 	if !ok {
-		return nil,
-			fmt.Errorf("unable to resolve 'schema.spec.version' for: %s.%s/%s @ %s",
-				uns.GetName(), uns.GetAPIVersion(), uns.GetKind(), uns.GetNamespace())
-	}
-	kind, ok, _ := unstructured.NestedString(schemaSpec, "kind")
-	if !ok {
-		return nil,
-			fmt.Errorf("unable to resolve 'schema.spec.kind' for: %s.%s/%s @ %s",
-				uns.GetName(), uns.GetAPIVersion(), uns.GetKind(), uns.GetNamespace())
+		return nil, fmt.Errorf("status.apiVersion not found in '%s/%s'", ref.Namespace, ref.Name)
 	}
 
-	gv := schema.GroupVersion{Group: "apps.krateo.io", Version: version}
-	gr := dynamic.InferGroupResource(gv.Group, kind)
+	kind, ok := status["kind"].(string)
+	if !ok {
+		return nil, fmt.Errorf("status.kind not found in '%s/%s'", ref.Namespace, ref.Name)
+	}
 
-	return &FormTemplateDeref{
-		group: gv.Group, version: version, resource: gr.Resource, kind: kind,
-		name: name, namespace: namespace,
+	refGVK := schema.FromAPIVersionAndKind(apiVersion, kind)
+	refGR := dynamic.InferGroupResource(refGVK.Group, refGVK.Kind)
+
+	return &DefinitionDeref{
+		group:     refGVK.Group,
+		version:   refGVK.Version,
+		resource:  refGR.Resource,
+		kind:      refGVK.Kind,
+		name:      ref.Name,
+		namespace: ref.Namespace,
 	}, nil
 }
 

@@ -5,7 +5,7 @@ metadata:
   name: apps-viewer
 rules:
 - apiGroups:
-  - apps.krateo.io
+  - composition.krateo.io
   resources:
   - '*'
   verbs:

@@ -112,7 +112,7 @@ func TestApply(t *testing.T) {
 
 	err = cli.Apply(context.TODO(), "demo-apply", map[string]any{"spec": content}, dynamic.Options{
 		GVK: schema.GroupVersionKind{
-			Group:   "apps.krateo.io",
+			Group:   "composition.krateo.io",
 			Version: "v1alpha1",
 			Kind:    "Fireworksapp",
 		},

@@ -1,5 +1,5 @@
 ---
-apiVersion: apps.krateo.io/v1alpha1
+apiVersion: composition.krateo.io/v1alpha1
 kind: Fireworksapp
 metadata:
   annotations:

@@ -3,7 +3,7 @@
 curl -X POST "http://localhost:8090/apis/actions" \
     --url-query "name=demo" \
     --url-query "namespace=demo-system" \
-    --url-query "group=apps.krateo.io" \
+    --url-query "group=composition.krateo.io" \
     --url-query "version=v1alpha1" \
     --url-query "plural=fireworksapps" \
     --url-query "kind=Fireworksapp" \

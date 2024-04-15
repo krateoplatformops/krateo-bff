@@ -1,0 +1,23 @@
+apiVersion: widgets.ui.krateo.io/v1alpha1
+kind: CardTemplate
+metadata:
+  name: fireworksapp
+  namespace: demo-system
+spec:
+  app:
+    icon: fa-solid fa-truck-fast
+    color: green
+    title: Fireworksapp Template
+    content: This template creates an instance of Fireworksapp composition
+  formTemplateRef:
+    name: fireworksapp
+---
+apiVersion: widgets.ui.krateo.io/v1alpha1
+kind: FormTemplate
+metadata:
+  name: fireworksapp
+  namespace: demo-system
+spec:
+  compositionDefinitionRef:
+    name: fireworksapp
+    namespace: demo-system

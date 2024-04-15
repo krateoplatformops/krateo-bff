@@ -28,7 +28,7 @@ func TestGet(t *testing.T) {
 
 	obj, err := cli.Get(context.TODO(), cardtemplates.GetOptions{
 		Namespace: "demo-system",
-		Name:      "one",
+		Name:      "fireworksapp",
 		Subject:   "cyberjoker",
 		Orgs:      []string{"devs"},
 		AuthnNS:   "",
